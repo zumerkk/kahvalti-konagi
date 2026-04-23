@@ -36,7 +36,7 @@ yarn-error.log*
 # vercel
 .vercel
 
-# brainstorming / mockup artifacts
+# brainstorm mockups (local)
 .superpowers/
 
 # typescript
