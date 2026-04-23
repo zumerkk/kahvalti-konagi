@@ -23,7 +23,14 @@ export async function POST(req: Request) {
   if (!name) return NextResponse.json({ ok: false, error: "Masa adı boş olamaz." }, { status: 400 });
 
   try {
-    await prisma.table.create({ data: { name, isActive: true } });
+    // UI'da alan seçimi eklenene kadar varsayılan olarak SALON'a ata
+    const salon = await prisma.area.upsert({
+      where: { code: "SALON" },
+      update: {},
+      create: { code: "SALON", title: "Salon", isActive: true },
+    });
+
+    await prisma.table.create({ data: { name, isActive: true, areaId: salon.id } });
     return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json(
@@ -32,4 +39,3 @@ export async function POST(req: Request) {
     );
   }
 }
-

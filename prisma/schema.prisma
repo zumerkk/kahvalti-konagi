@@ -17,12 +17,31 @@ enum ReservationStatus {
   CANCELLED
 }
 
+enum AreaCode {
+  CAMEKAN
+  SALON
+}
+
+model Area {
+  id        String   @id @default(cuid())
+  code      AreaCode @unique
+  title     String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tables Table[]
+}
+
 model Table {
   id        String        @id @default(cuid())
   name      String        @unique
   isActive  Boolean       @default(true)
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
+
+  areaId String
+  area   Area   @relation(fields: [areaId], references: [id], onDelete: Restrict)
 
   reservations Reservation[]
 }
@@ -61,4 +80,45 @@ model ClosedDate {
   date      DateTime @unique @db.Date
   reason    String?
   createdAt DateTime @default(now())
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products Product[]
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  categoryId  String
+  name        String
+  description String?
+  /// Para birimi: kuruş (örn. 1990 = 19,90₺). Açık büfe gibi sabit fiyatlı ürünlerde null bırakılabilir.
+  priceCents  Int?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  @@index([categoryId])
+}
+
+model Settings {
+  /// Tek satır (singleton) ayarlar tablosu
+  id                   String   @id @default("singleton")
+  reservationsEnabled  Boolean  @default(true)
+  reservationStartTime String   @default("08:00")
+  reservationEndTime   String   @default("14:00")
+  slotMinutes          Int      @default(30)
+  maxPartySize         Int      @default(12)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 }
