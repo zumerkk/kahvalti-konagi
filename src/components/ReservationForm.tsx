@@ -19,7 +19,20 @@ type ReservationCreateResponse =
   | { ok: false; error: string };
 
 export function ReservationForm() {
-  const timeSlots = useMemo(() => getTimeSlots("BREAKFAST"), []);
+  const [serviceType, setServiceType] = useState<"BREAKFAST" | "CAFE">("BREAKFAST");
+  const [areaId, setAreaId] = useState("");
+
+  // Basit varsayılanlar: şimdilik query param ile override edilebilir.
+  // (UI'da servis/alan seçimi sonraki adımda eklenecek.)
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    const st = sp.get("serviceType");
+    const aid = sp.get("areaId");
+    if (st === "BREAKFAST" || st === "CAFE") setServiceType(st);
+    if (aid) setAreaId(aid);
+  }, []);
+
+  const timeSlots = useMemo(() => getTimeSlots(serviceType), [serviceType]);
   const [date, setDate] = useState("");
   const [time, setTime] = useState(timeSlots[0] ?? "08:00");
 
@@ -44,7 +57,7 @@ export function ReservationForm() {
   } | null>(null);
 
   async function loadAvailability(d: string, t: string) {
-    if (!d || !t) return;
+    if (!d || !t || !areaId) return;
     if (!isAllowedDate(d)) {
       setTables([]);
       setClosedReason("Sadece hafta sonu rezervasyon alınmaktadır.");
@@ -55,7 +68,9 @@ export function ReservationForm() {
     setError(null);
     try {
       const res = await fetch(
-        `/api/availability?date=${encodeURIComponent(d)}&time=${encodeURIComponent(t)}`,
+        `/api/availability?serviceType=${encodeURIComponent(serviceType)}&areaId=${encodeURIComponent(
+          areaId,
+        )}&date=${encodeURIComponent(d)}&time=${encodeURIComponent(t)}`,
       );
       const json = (await res.json()) as AvailabilityResponse;
       if (!res.ok) {
@@ -88,7 +103,7 @@ export function ReservationForm() {
 
   useEffect(() => {
     if (date) void loadAvailability(date, time);
-  }, [date, time]);
+  }, [date, time, areaId, serviceType]);
 
   async function submit() {
     setSubmitting(true);
@@ -99,8 +114,10 @@ export function ReservationForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          serviceType,
           date,
           time,
+          areaId,
           tableId,
           fullName,
           phone,
@@ -183,7 +200,7 @@ export function ReservationForm() {
           label="Kişi Sayısı"
           type="number"
           min={1}
-          max={30}
+          max={4}
           value={partySize}
           onChange={(e) => setPartySize(Number(e.target.value))}
         />

@@ -17,6 +17,11 @@ enum ReservationStatus {
   CANCELLED
 }
 
+enum ServiceType {
+  BREAKFAST
+  CAFE
+}
+
 enum AreaCode {
   CAMEKAN
   SALON
@@ -31,11 +36,12 @@ model Area {
   updatedAt DateTime @updatedAt
 
   tables Table[]
+  reservations Reservation[]
 }
 
 model Table {
   id        String        @id @default(cuid())
-  name      String        @unique
+  name      String
   isActive  Boolean       @default(true)
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
@@ -44,11 +50,14 @@ model Table {
   area   Area   @relation(fields: [areaId], references: [id], onDelete: Restrict)
 
   reservations Reservation[]
+
+  @@unique([areaId, name])
 }
 
 model Reservation {
   id            String            @id @default(cuid())
   status        ReservationStatus @default(BOOKED)
+  serviceType   ServiceType       @default(BREAKFAST)
 
   /// Rezervasyon tarihi (saat içermez)
   date          DateTime          @db.Date
@@ -65,13 +74,17 @@ model Reservation {
   tcknLast4     String
 
   partySize     Int
+  totalAmount   Int?
   note          String?
+
+  areaId        String
+  area          Area              @relation(fields: [areaId], references: [id], onDelete: Restrict)
 
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
 
-  @@unique([date, time, tableId])
-  @@index([date, time])
+  @@unique([serviceType, date, time, tableId])
+  @@index([serviceType, date, time])
   @@index([status])
 }
 
@@ -119,6 +132,7 @@ model Settings {
   reservationEndTime   String   @default("14:00")
   slotMinutes          Int      @default(30)
   maxPartySize         Int      @default(12)
+  breakfastPricePerPerson Int   @default(350)
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 }
