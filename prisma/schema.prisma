@@ -112,8 +112,10 @@ model Product {
   categoryId  String
   name        String
   description String?
+  imageUrl    String?
   /// Para birimi: kuruş (örn. 1990 = 19,90₺). Açık büfe gibi sabit fiyatlı ürünlerde null bırakılabilir.
   priceCents  Int?
+  stockQty    Int      @default(0)
   sortOrder   Int      @default(0)
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
@@ -122,6 +124,7 @@ model Product {
   category Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
 
   @@index([categoryId])
+  @@index([isActive])
 }
 
 model Settings {
@@ -131,7 +134,7 @@ model Settings {
   reservationStartTime String   @default("08:00")
   reservationEndTime   String   @default("14:00")
   slotMinutes          Int      @default(30)
-  maxPartySize         Int      @default(12)
+  maxPartySize         Int      @default(4)
   breakfastPricePerPerson Int   @default(350)
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt

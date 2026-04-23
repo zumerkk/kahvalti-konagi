@@ -11,7 +11,7 @@ const PriceSchema = z.preprocess(
   z.coerce.number().int().nonnegative().nullable(),
 );
 
-const StockSchema = z.preprocess(
+const StockQtySchema = z.preprocess(
   (v) => (v === "" || v === undefined ? undefined : v),
   z.coerce.number().int().min(0).max(1_000_000),
 );
@@ -24,7 +24,7 @@ const UpsertSchema = z.object({
   priceCents: PriceSchema.optional(),
   sortOrder: z.coerce.number().int().min(0).max(9999).optional().default(0),
   isActive: z.coerce.boolean().optional().default(true),
-  stock: StockSchema.optional(),
+  stockQty: StockQtySchema.optional(),
 });
 
 export async function GET(req: Request) {
@@ -38,18 +38,17 @@ export async function GET(req: Request) {
   const products = await prisma.product.findMany({
     where: categoryId ? { categoryId } : undefined,
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-    // stock alanı şemaya sonradan ekleneceği için (gerekirse) tipleri zorlamadan çekiyoruz.
     select: {
       id: true,
       categoryId: true,
       name: true,
       description: true,
       priceCents: true,
+      stockQty: true,
       sortOrder: true,
       isActive: true,
       category: { select: { id: true, name: true } },
-      ...(true ? ({ stock: true } as unknown as Record<string, unknown>) : {}),
-    } as unknown as Prisma.ProductSelect,
+    },
   });
 
   return NextResponse.json({ ok: true, products });
@@ -77,7 +76,7 @@ export async function POST(req: Request) {
     sortOrder: parsed.data.sortOrder,
     isActive: parsed.data.isActive,
   };
-  if (typeof parsed.data.stock === "number") data.stock = parsed.data.stock;
+  if (typeof parsed.data.stockQty === "number") data.stockQty = parsed.data.stockQty;
 
   try {
     if (parsed.data.id) {
@@ -102,4 +101,3 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ ok: true });
 }
-

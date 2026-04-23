@@ -15,7 +15,7 @@ type ProductDto = {
   priceCents: number | null;
   sortOrder: number;
   isActive: boolean;
-  stock?: number | null;
+  stockQty: number;
   category: { id: string; name: string };
 };
 
@@ -80,7 +80,7 @@ export function MenuProductsManager({ categories }: { categories: CategoryDto[] 
       setStockDrafts((prev) => {
         const next: Record<string, string> = { ...prev };
         for (const p of json.products) {
-          if (next[p.id] === undefined) next[p.id] = String(p.stock ?? 0);
+          if (next[p.id] === undefined) next[p.id] = String(p.stockQty ?? 0);
         }
         return next;
       });
@@ -116,7 +116,7 @@ export function MenuProductsManager({ categories }: { categories: CategoryDto[] 
     setPriceTl(centsToTlInput(p.priceCents));
     setSortOrder(String(p.sortOrder ?? 0));
     setIsActive(p.isActive);
-    setStock(p.stock === null || p.stock === undefined ? "" : String(p.stock));
+    setStock(String(p.stockQty ?? 0));
     setError(null);
   }
 
@@ -155,7 +155,7 @@ export function MenuProductsManager({ categories }: { categories: CategoryDto[] 
       sortOrder: Number(sortOrder),
       isActive,
     };
-    if (stock.trim()) payload.stock = Number(stock);
+    if (stock.trim()) payload.stockQty = Number(stock);
     await upsert(payload);
   }
 
@@ -168,8 +168,8 @@ export function MenuProductsManager({ categories }: { categories: CategoryDto[] 
       priceCents: p.priceCents,
       sortOrder: p.sortOrder,
       isActive: !p.isActive,
+      stockQty: p.stockQty,
     };
-    if (p.stock !== undefined && p.stock !== null) payload.stock = p.stock;
     await upsert(payload);
   }
 
@@ -184,7 +184,7 @@ export function MenuProductsManager({ categories }: { categories: CategoryDto[] 
       const res = await fetch(`/api/admin/products/${id}/stock`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ stock: Number(v) }),
+        body: JSON.stringify({ stockQty: Number(v) }),
       });
       const json = (await res.json()) as { ok: true } | { ok: false; error: string };
       if (!res.ok) {
@@ -336,7 +336,7 @@ export function MenuProductsManager({ categories }: { categories: CategoryDto[] 
                           : `${(p.priceCents / 100).toFixed(2)}₺`}
                       </span>
                       <span className="rounded-full border border-white/15 bg-white/5 px-2 py-0.5 text-xs text-white/70">
-                        Stok: {p.stock ?? 0}
+                        Stok: {p.stockQty ?? 0}
                       </span>
                     </div>
                     {p.description ? <div className="text-xs text-white/60">{p.description}</div> : null}
@@ -348,7 +348,7 @@ export function MenuProductsManager({ categories }: { categories: CategoryDto[] 
                         className="w-24 rounded-xl border border-white/15 bg-black/40 px-3 py-2 text-xs text-white outline-none focus:border-amber-400/70 focus:ring-2 focus:ring-amber-500/20"
                         type="number"
                         inputMode="numeric"
-                        value={stockDrafts[p.id] ?? String(p.stock ?? 0)}
+                        value={stockDrafts[p.id] ?? String(p.stockQty ?? 0)}
                         onChange={(e) =>
                           setStockDrafts((m) => ({ ...m, [p.id]: e.target.value }))
                         }

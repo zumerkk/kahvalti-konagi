@@ -6,7 +6,7 @@ import { isAdminRequest } from "@/lib/auth";
 export const runtime = "nodejs";
 
 const Schema = z.object({
-  stock: z.coerce.number().int().min(0).max(1_000_000),
+  stockQty: z.coerce.number().int().min(0).max(1_000_000),
 });
 
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
@@ -24,7 +24,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   try {
     await prisma.product.update({
       where: { id },
-      data: ({ stock: parsed.data.stock } as unknown as Record<string, unknown>) as never,
+      data: { stockQty: parsed.data.stockQty },
     });
   } catch {
     return NextResponse.json({ ok: false, error: "Ürün bulunamadı." }, { status: 404 });
@@ -32,4 +32,3 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
 
   return NextResponse.json({ ok: true });
 }
-
