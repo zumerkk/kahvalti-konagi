@@ -19,6 +19,9 @@ export function Navbar() {
           <a href="#menu" className="hover:text-white">
             Açık Büfe
           </a>
+          <Link href="/menu" className="hover:text-white">
+            Menü
+          </Link>
           <a href="#galeri" className="hover:text-white">
             Galeri
           </a>
