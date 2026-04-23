@@ -36,7 +36,7 @@ export async function POST(req: Request) {
       { status: 400 },
     );
   }
-  if (!isAllowedTime(time)) {
+  if (!isAllowedTime("BREAKFAST", time)) {
     return NextResponse.json(
       { ok: false, error: "Saat aralığı 08:00-14:00 (30 dk slot) olmalıdır." },
       { status: 400 },
@@ -104,4 +104,3 @@ export async function POST(req: Request) {
     );
   }
 }
-

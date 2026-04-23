@@ -19,7 +19,7 @@ type ReservationCreateResponse =
   | { ok: false; error: string };
 
 export function ReservationForm() {
-  const timeSlots = useMemo(() => getTimeSlots(), []);
+  const timeSlots = useMemo(() => getTimeSlots("BREAKFAST"), []);
   const [date, setDate] = useState("");
   const [time, setTime] = useState(timeSlots[0] ?? "08:00");
 
