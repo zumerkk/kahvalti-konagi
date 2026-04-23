@@ -14,6 +14,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <Link href="/admin" className="hover:text-white">
                 Rezervasyonlar
               </Link>
+              <Link href="/admin/menu/urunler" className="hover:text-white">
+                Menü
+              </Link>
               <Link href="/admin/kapali-gunler" className="hover:text-white">
                 Kapalı Günler
               </Link>
@@ -31,4 +34,3 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     </div>
   );
 }
-
