@@ -35,7 +35,7 @@ export async function POST(req: Request) {
 
   if (!isAllowedDate(date)) {
     return NextResponse.json(
-      { ok: false, error: "Sadece hafta sonu rezervasyon alınmaktadır." },
+      { ok: false, error: "Tarih geçersiz." },
       { status: 400 },
     );
   }

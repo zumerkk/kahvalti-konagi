@@ -33,7 +33,7 @@ export async function GET(req: Request) {
   const serviceType: ServiceType = serviceTypeRaw;
   if (!isAllowedDate(date)) {
     return NextResponse.json(
-      { ok: false, error: "Sadece hafta sonu rezervasyon alınmaktadır." },
+      { ok: false, error: "Tarih geçersiz." },
       { status: 400 },
     );
   }
@@ -44,6 +44,14 @@ export async function GET(req: Request) {
     );
   }
 
+  const closed = await prisma.closedDate.findUnique({
+    where: { date: toDbDate(date) },
+    select: { reason: true },
+  });
+  if (closed) {
+    return NextResponse.json({ ok: true, closed: true, reason: closed.reason ?? null, tables: [] });
+  }
+
   const [tables, reservations] = await Promise.all([
     prisma.table.findMany({
       where: { isActive: true, areaId },
@@ -52,6 +60,7 @@ export async function GET(req: Request) {
     }),
     prisma.reservation.findMany({
       where: {
+        serviceType,
         date: toDbDate(date),
         time,
         status: "BOOKED",

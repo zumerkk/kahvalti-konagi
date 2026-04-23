@@ -5,10 +5,20 @@ import { getTimeSlots, isAllowedDate } from "@/lib/reservation-rules";
 import { Input, Select, TextArea } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 
+type ServiceType = "BREAKFAST" | "CAFE";
+type AreaCode = "CAMEKAN" | "SALON";
+
 type TableOption = { id: string; name: string };
 type AvailabilityResponse =
   | { ok: true; closed: true; reason: string | null; tables: [] }
   | { ok: true; closed: false; tables: TableOption[] }
+  | { ok: false; error: string };
+
+type AreaDto = { id: string; code: AreaCode; title: string };
+type AreasResponse = { ok: true; areas: AreaDto[] } | { ok: false; error: string };
+
+type PublicSettingsResponse =
+  | { ok: true; settings: { breakfastPricePerPerson: number } }
   | { ok: false; error: string };
 
 type ReservationCreateResponse =
@@ -19,18 +29,14 @@ type ReservationCreateResponse =
   | { ok: false; error: string };
 
 export function ReservationForm() {
-  const [serviceType, setServiceType] = useState<"BREAKFAST" | "CAFE">("BREAKFAST");
+  const [serviceType, setServiceType] = useState<ServiceType>("BREAKFAST");
+  const [areaCode, setAreaCode] = useState<AreaCode>("SALON");
+  const [areas, setAreas] = useState<AreaDto[]>([]);
   const [areaId, setAreaId] = useState("");
+  const [loadingAreas, setLoadingAreas] = useState(false);
+  const [areasError, setAreasError] = useState<string | null>(null);
 
-  // Basit varsayılanlar: şimdilik query param ile override edilebilir.
-  // (UI'da servis/alan seçimi sonraki adımda eklenecek.)
-  useEffect(() => {
-    const sp = new URLSearchParams(window.location.search);
-    const st = sp.get("serviceType");
-    const aid = sp.get("areaId");
-    if (st === "BREAKFAST" || st === "CAFE") setServiceType(st);
-    if (aid) setAreaId(aid);
-  }, []);
+  const [breakfastPricePerPerson, setBreakfastPricePerPerson] = useState<number | null>(null);
 
   const timeSlots = useMemo(() => getTimeSlots(serviceType), [serviceType]);
   const [date, setDate] = useState("");
@@ -56,11 +62,61 @@ export function ReservationForm() {
     dateISO: string;
   } | null>(null);
 
+  async function loadAreas() {
+    setLoadingAreas(true);
+    setAreasError(null);
+    try {
+      const res = await fetch("/api/areas");
+      const json = (await res.json()) as AreasResponse;
+      if (!res.ok || !("areas" in json)) {
+        setAreas([]);
+        setAreasError("error" in json ? json.error : "Alanlar yüklenemedi.");
+        return;
+      }
+      setAreas(json.areas);
+    } catch {
+      setAreas([]);
+      setAreasError("Bağlantı hatası.");
+    } finally {
+      setLoadingAreas(false);
+    }
+  }
+
+  async function loadPublicSettings() {
+    try {
+      const res = await fetch("/api/settings");
+      const json = (await res.json()) as PublicSettingsResponse;
+      if (!res.ok || !("settings" in json)) return;
+      setBreakfastPricePerPerson(json.settings.breakfastPricePerPerson);
+    } catch {
+      // sessiz geç: fiyat bilgisi opsiyonel gösterim
+    }
+  }
+
+  useEffect(() => {
+    void loadAreas();
+    void loadPublicSettings();
+  }, []);
+
+  useEffect(() => {
+    const id = areas.find((a) => a.code === areaCode)?.id ?? "";
+    setAreaId(id);
+    if (!id) {
+      setTables([]);
+      setTableId("");
+    }
+  }, [areas, areaCode]);
+
+  // servis değişince saat geçerliyse koru, değilse ilk slota dön
+  useEffect(() => {
+    setTime((prev) => (timeSlots.includes(prev) ? prev : (timeSlots[0] ?? "")));
+  }, [timeSlots]);
+
   async function loadAvailability(d: string, t: string) {
     if (!d || !t || !areaId) return;
     if (!isAllowedDate(d)) {
       setTables([]);
-      setClosedReason("Sadece hafta sonu rezervasyon alınmaktadır.");
+      setClosedReason("Tarih geçersiz.");
       setTableId("");
       return;
     }
@@ -150,15 +206,52 @@ export function ReservationForm() {
     }
   }
 
+  const breakfastTotal =
+    serviceType === "BREAKFAST" && breakfastPricePerPerson != null
+      ? breakfastPricePerPerson * partySize
+      : null;
+
   return (
     <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Select
+          label="Hizmet"
+          value={serviceType}
+          onChange={(e) => setServiceType(e.target.value as ServiceType)}
+        >
+          <option value="BREAKFAST">Kahvaltı</option>
+          <option value="CAFE">Kafe</option>
+        </Select>
+
+        <Select
+          label="Alan"
+          value={areaCode}
+          onChange={(e) => setAreaCode(e.target.value as AreaCode)}
+          disabled={loadingAreas || !!areasError}
+          hint={
+            areasError
+              ? areasError
+              : loadingAreas
+                ? "Alanlar yükleniyor…"
+                : areaId
+                  ? undefined
+                  : "Alan seçimi için alanlar yükleniyor."
+          }
+        >
+          <option value="CAMEKAN">
+            {areas.find((a) => a.code === "CAMEKAN")?.title ?? "Camekan"}
+          </option>
+          <option value="SALON">{areas.find((a) => a.code === "SALON")?.title ?? "Salon"}</option>
+        </Select>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Input
-          label="Tarih (Cumartesi/Pazar)"
+          label="Tarih"
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
-          hint="Sadece hafta sonu tarih seçebilirsiniz."
+          hint="Kapalı günlerde uygun masa listesi gelmez."
         />
         <Select label="Saat" value={time} onChange={(e) => setTime(e.target.value)}>
           {timeSlots.map((s) => (
@@ -169,12 +262,18 @@ export function ReservationForm() {
         </Select>
       </div>
 
+      {serviceType === "BREAKFAST" && breakfastTotal != null ? (
+        <div className="mt-4 rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-100">
+          Kahvaltı kişi başı: <b>{breakfastPricePerPerson}₺</b> — Toplam: <b>{breakfastTotal}₺</b>
+        </div>
+      ) : null}
+
       <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Select
           label="Masa"
           value={tableId}
           onChange={(e) => setTableId(e.target.value)}
-          disabled={!date || loadingTables || !!closedReason || tables.length === 0}
+          disabled={!date || !areaId || loadingTables || !!closedReason || tables.length === 0}
           hint={
             closedReason
               ? closedReason
@@ -202,7 +301,11 @@ export function ReservationForm() {
           min={1}
           max={4}
           value={partySize}
-          onChange={(e) => setPartySize(Number(e.target.value))}
+          onChange={(e) => {
+            const raw = Number(e.target.value);
+            const next = Number.isFinite(raw) ? raw : 1;
+            setPartySize(Math.min(4, Math.max(1, Math.trunc(next))));
+          }}
         />
       </div>
 
@@ -255,6 +358,7 @@ export function ReservationForm() {
           onClick={submit}
           disabled={
             submitting ||
+            !areaId ||
             !date ||
             !time ||
             !tableId ||
@@ -262,6 +366,8 @@ export function ReservationForm() {
             !phone.trim() ||
             tckn.length !== 11 ||
             !isAllowedDate(date) ||
+            partySize < 1 ||
+            partySize > 4 ||
             !!closedReason
           }
         >

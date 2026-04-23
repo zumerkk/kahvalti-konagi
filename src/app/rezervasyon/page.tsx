@@ -15,10 +15,19 @@ export default function ReservationPage() {
           <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.65),rgba(0,0,0,0.95))]" />
           <div className="relative mx-auto max-w-3xl px-5 py-14">
             <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">Online Rezervasyon</h1>
-            <p className="mt-3 text-white/70 leading-7">
-              Rezervasyonlar sadece <b>hafta sonu</b> (Cumartesi/Pazar) ve{" "}
-              <b>08:00–14:00</b> saatleri arasında alınmaktadır.
-            </p>
+            <div className="mt-3 space-y-2 text-white/70 leading-7">
+              <p>
+                Lütfen hizmeti ve alanı seçip uygun saat aralığından devam edin:
+              </p>
+              <ul className="list-disc pl-5">
+                <li>
+                  <b>Kahvaltı</b>: 08:00–14:00
+                </li>
+                <li>
+                  <b>Kafe</b>: 14:00–23:00
+                </li>
+              </ul>
+            </div>
           </div>
         </section>
 
@@ -29,4 +38,3 @@ export default function ReservationPage() {
     </div>
   );
 }
-
