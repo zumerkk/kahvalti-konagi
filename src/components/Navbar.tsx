@@ -4,15 +4,18 @@ import { ButtonLink } from "@/components/ui/Button";
 
 export function Navbar() {
   return (
-    <header className="sticky top-0 z-40 border-b border-white/10 bg-black/30 backdrop-blur">
+    <header className="sticky top-0 z-40 border-b border-white/10 bg-zinc-950/75 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
-        <Link href="/" className="flex items-center gap-3 font-semibold tracking-tight text-white">
-          <span className="relative h-10 w-10 overflow-hidden rounded-xl border border-white/10 bg-white/5">
+        <Link
+          href="/"
+          className="flex items-center gap-3 font-semibold tracking-tight text-white"
+        >
+          <span className="relative h-10 w-10 overflow-hidden rounded-xl border border-white/10 bg-zinc-950">
             <Image src="/media/logo.png" alt="Kahvaltı Konağı logo" fill className="object-cover" />
           </span>
           <span>Kahvaltı Konağı</span>
         </Link>
-        <nav className="hidden items-center gap-6 text-sm text-white/80 md:flex">
+        <nav className="hidden items-center gap-6 text-sm text-zinc-400 md:flex">
           <a href="#hakkinda" className="hover:text-white">
             Hakkında
           </a>

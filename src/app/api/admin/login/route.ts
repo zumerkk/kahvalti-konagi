@@ -1,27 +1,25 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
-import { createSession, verifyCredentials } from "@/lib/auth";
+import { verifyCredentials, createSession } from "@/lib/auth";
+import { logAudit } from "@/lib/audit-logger";
 
 export const runtime = "nodejs";
 
-const LoginSchema = z.object({
-  username: z.string().min(1),
-  password: z.string().min(1),
-});
-
 export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
-  const parsed = LoginSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json({ ok: false, error: "Veriler geçersiz." }, { status: 400 });
+  if (!body || !body.username || !body.password) {
+    return NextResponse.json({ ok: false, error: "Kullanıcı adı ve şifre zorunlu." }, { status: 400 });
   }
 
-  const ok = await verifyCredentials(parsed.data.username, parsed.data.password);
-  if (!ok) {
+  const { success, role } = await verifyCredentials(body.username, body.password);
+
+  if (!success) {
+    await logAudit("SYSTEM", "LOGIN_FAILED", "UPDATE", { username: body.username }, "SYSTEM");
     return NextResponse.json({ ok: false, error: "Kullanıcı adı veya şifre hatalı." }, { status: 401 });
   }
 
-  await createSession();
+  await createSession(role || "STAFF");
+  await logAudit("SYSTEM", "LOGIN_SUCCESS", "UPDATE", { username: body.username, role }, body.username);
+
   return NextResponse.json({ ok: true });
 }
 

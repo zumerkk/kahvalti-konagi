@@ -18,7 +18,7 @@ type AreaDto = { id: string; code: AreaCode; title: string };
 type AreasResponse = { ok: true; areas: AreaDto[] } | { ok: false; error: string };
 
 type PublicSettingsResponse =
-  | { ok: true; settings: { breakfastPricePerPerson: number } }
+  | { ok: true; settings: { breakfastPricePerPerson: number, onlineReservationsActive: boolean, maxPartySize: number, minPartySize: number } }
   | { ok: false; error: string };
 
 type ReservationCreateResponse =
@@ -37,6 +37,9 @@ export function ReservationForm() {
   const [areasError, setAreasError] = useState<string | null>(null);
 
   const [breakfastPricePerPerson, setBreakfastPricePerPerson] = useState<number | null>(null);
+  const [onlineActive, setOnlineActive] = useState(true);
+  const [maxPartySize, setMaxPartySize] = useState(4);
+  const [minPartySize, setMinPartySize] = useState(1);
 
   const timeSlots = useMemo(() => getTimeSlots(serviceType), [serviceType]);
   const [date, setDate] = useState("");
@@ -88,6 +91,9 @@ export function ReservationForm() {
       const json = (await res.json()) as PublicSettingsResponse;
       if (!res.ok || !("settings" in json)) return;
       setBreakfastPricePerPerson(json.settings.breakfastPricePerPerson);
+      setOnlineActive(json.settings.onlineReservationsActive);
+      setMaxPartySize(json.settings.maxPartySize);
+      setMinPartySize(json.settings.minPartySize);
     } catch {
       // sessiz geç: fiyat bilgisi opsiyonel gösterim
     }
@@ -213,7 +219,12 @@ export function ReservationForm() {
 
   return (
     <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      {!onlineActive && (
+        <div className="mb-6 rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-center text-red-200">
+          Şu anda online rezervasyon kabul etmiyoruz. Lütfen telefon ile iletişime geçiniz.
+        </div>
+      )}
+      <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${!onlineActive ? "opacity-50 pointer-events-none" : ""}`}>
         <Select
           label="Hizmet"
           value={serviceType}
@@ -298,13 +309,13 @@ export function ReservationForm() {
         <Input
           label="Kişi Sayısı"
           type="number"
-          min={1}
-          max={4}
+          min={minPartySize}
+          max={maxPartySize}
           value={partySize}
           onChange={(e) => {
             const raw = Number(e.target.value);
-            const next = Number.isFinite(raw) ? raw : 1;
-            setPartySize(Math.min(4, Math.max(1, Math.trunc(next))));
+            const next = Number.isFinite(raw) ? raw : minPartySize;
+            setPartySize(Math.min(maxPartySize, Math.max(minPartySize, Math.trunc(next))));
           }}
         />
       </div>

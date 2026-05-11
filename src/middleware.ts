@@ -5,7 +5,7 @@ const COOKIE_NAME = "kk_admin";
 
 function getSecret() {
   const s = process.env.AUTH_SECRET;
-  if (!s) throw new Error("AUTH_SECRET eksik (env).");
+  if (!s) throw new Error("AUTH_SECRET is missing");
   return new TextEncoder().encode(s);
 }
 

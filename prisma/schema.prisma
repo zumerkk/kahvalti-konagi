@@ -13,8 +13,17 @@ datasource db {
 }
 
 enum ReservationStatus {
-  BOOKED
+  PENDING
+  BOOKED       // Legacy or Onaylandı
+  CONFIRMED    // Onaylandı
+  ARRIVED
+  SEATED
+  COMPLETED
   CANCELLED
+  NO_SHOW
+  POSTPONED
+  DEPOSIT_PENDING
+  DEPOSIT_RECEIVED
 }
 
 enum ServiceType {
@@ -25,6 +34,32 @@ enum ServiceType {
 enum AreaCode {
   CAMEKAN
   SALON
+}
+
+enum ReservationSource {
+  WEB
+  PHONE
+  WHATSAPP
+  INSTAGRAM
+  WALK_IN
+  ADMIN
+  OTHER
+}
+
+enum Role {
+  SUPER_ADMIN
+  MANAGER
+  STAFF
+}
+
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  passwordHash String
+  role         Role     @default(STAFF)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model Area {
@@ -50,13 +85,15 @@ model Table {
   area   Area   @relation(fields: [areaId], references: [id], onDelete: Restrict)
 
   reservations Reservation[]
+  orders       Order[]
 
   @@unique([areaId, name])
 }
 
 model Reservation {
   id            String            @id @default(cuid())
-  status        ReservationStatus @default(BOOKED)
+  status        ReservationStatus @default(PENDING)
+  source        ReservationSource @default(WEB)
   serviceType   ServiceType       @default(BREAKFAST)
 
   /// Rezervasyon tarihi (saat içermez)
@@ -70,8 +107,8 @@ model Reservation {
   fullName      String
   phone         String
   /// KVKK açısından hassas veri: şifreli saklanır
-  tcknEncrypted String
-  tcknLast4     String
+  tcknEncrypted String?
+  tcknLast4     String?
 
   partySize     Int
   totalAmount   Int?
@@ -83,9 +120,78 @@ model Reservation {
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
 
-  @@unique([serviceType, date, time, tableId])
+  orders        Order[]
+
   @@index([serviceType, date, time])
   @@index([status])
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  tableId       String
+  table         Table       @relation(fields: [tableId], references: [id], onDelete: Restrict)
+  
+  reservationId String?
+  reservation   Reservation? @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+
+  status        String      @default("OPEN") // OPEN, CLOSED, CANCELLED
+  totalAmount   Int         @default(0) // Kuruş
+  
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  items         OrderItem[]
+  payments      Payment[]
+
+  @@index([tableId])
+  @@index([status])
+}
+
+model OrderItem {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+  
+  quantity  Int      @default(1)
+  priceCents Int     // Fiyat o andaki ürün fiyatıdır (Kuruş)
+  note      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+model Payment {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  amountCents Int
+  method      String // CASH, CREDIT_CARD, IBAN, OTHER
+  status      String @default("COMPLETED") // PENDING, COMPLETED, REFUNDED
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orderId])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  entity    String   // RESERVATION, SETTINGS, ORDER, etc.
+  entityId  String
+  action    String   // CREATE, UPDATE, DELETE, STATUS_CHANGE
+  details   String?  // JSON stringified details
+  adminUser String?  // Kim yaptı?
+  
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
 }
 
 model ClosedDate {
@@ -118,24 +224,61 @@ model Product {
   stockQty    Int      @default(0)
   sortOrder   Int      @default(0)
   isActive    Boolean  @default(true)
+  sku         String?  @unique /// Hızlı Satış ve Barkod Entegrasyonu için
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   category Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  orderItems OrderItem[]
+  variants   ProductVariant[]
 
   @@index([categoryId])
   @@index([isActive])
 }
 
+model ProductVariant {
+  id         String   @id @default(cuid())
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name       String   // Örn: "Büyük Porsiyon", "Şekersiz"
+  priceCents Int
+  stockQty   Int      @default(0)
+  sku        String?  @unique // Barkod
+  isActive   Boolean  @default(true)
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([productId])
+}
+
 model Settings {
   /// Tek satır (singleton) ayarlar tablosu
   id                   String   @id @default("singleton")
+  businessName         String   @default("Kahvaltı Konağı")
+  phone                String?
+  whatsapp             String?
+  address              String?
+
   reservationsEnabled  Boolean  @default(true)
+  onlineReservationsActive Boolean @default(true)
+  
   reservationStartTime String   @default("08:00")
   reservationEndTime   String   @default("14:00")
+  cafeStartTime        String   @default("14:00")
+  cafeEndTime          String   @default("23:00")
+  
   slotMinutes          Int      @default(30)
+  minPartySize         Int      @default(1)
   maxPartySize         Int      @default(4)
   breakfastPricePerPerson Int   @default(350)
+  
+  depositEnabled       Boolean  @default(false)
+  depositAmount        Int      @default(0)
+  
+  smsEnabled           Boolean  @default(false)
+  emailEnabled         Boolean  @default(false)
+
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 }

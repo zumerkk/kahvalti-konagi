@@ -1,8 +1,8 @@
 import crypto from "crypto";
+import { env } from "./env";
 
 function getKey() {
-  const base64 = process.env.PII_ENCRYPTION_KEY;
-  if (!base64) throw new Error("PII_ENCRYPTION_KEY eksik (env).");
+  const base64 = env.PII_ENCRYPTION_KEY;
   const key = Buffer.from(base64, "base64");
   if (key.length !== 32) throw new Error("PII_ENCRYPTION_KEY 32 byte olmalı (base64).");
   return key;

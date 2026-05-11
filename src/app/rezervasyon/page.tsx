@@ -1,8 +1,15 @@
 import { Navbar } from "@/components/Navbar";
 import { ReservationForm } from "@/components/ReservationForm";
+import { Clock, Info, ShieldCheck } from "lucide-react";
+import { Metadata } from "next";
 
-export const metadata = {
-  title: "Online Rezervasyon | Kahvaltı Konağı",
+export const metadata: Metadata = {
+  title: "Online Rezervasyon Yap",
+  description: "Kırıkkale Kahvaltı Konağı için online rezervasyon yapın. Hafta sonu açık büfe kahvaltı veya cafe masanızı anında ayırtın. Hızlı ve güvenli rezervasyon sistemi.",
+  keywords: ["Kırıkkale rezervasyon", "Kırıkkale kahvaltı mekanları rezervasyon", "Kahvaltı Konağı masa ayırtma"],
+  alternates: {
+    canonical: "/rezervasyon",
+  },
 };
 
 export default function ReservationPage() {

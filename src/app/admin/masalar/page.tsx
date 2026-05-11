@@ -1,6 +1,7 @@
+import Link from "next/link";
+import { Armchair, QrCode } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { AdminTopbar } from "@/components/admin/AdminTopbar";
-import { TablesForm } from "@/components/admin/TablesForm";
+import TableClient from "./TableClient";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -9,57 +10,38 @@ export const revalidate = 0;
 export default async function AdminTablesPage() {
   const tables = await prisma.table.findMany({
     orderBy: { name: "asc" },
-    select: { id: true, name: true, isActive: true, createdAt: true },
+    include: {
+      area: {
+        select: { title: true }
+      }
+    }
+  });
+
+  const areas = await prisma.area.findMany({
+    orderBy: { title: "asc" },
+    select: { id: true, title: true }
   });
 
   return (
-    <div>
-      <AdminTopbar
-        title="Masalar"
-        description="Yeni masa ekleyin/kaldırın. Aktif olmayan masalar rezervasyon ekranında görünmez."
-      />
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
-          <div className="text-sm font-semibold">Yeni Masa</div>
-          <div className="mt-4">
-            <TablesForm />
-          </div>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-end justify-between">
+        <div>
+          <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
+            <Armchair className="h-6 w-6 text-sky-400" />
+            Masalar
+          </h1>
         </div>
-        <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
-          <div className="text-sm font-semibold">Kayıtlı Masalar</div>
-          <div className="mt-4 space-y-2">
-            {tables.length === 0 ? (
-              <div className="text-sm text-white/60">Kayıt yok.</div>
-            ) : (
-              tables.map((t) => (
-                <div
-                  key={t.id}
-                  className="flex items-center justify-between rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="text-white">{t.name}</div>
-                    {t.isActive ? (
-                      <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-200">
-                        Aktif
-                      </span>
-                    ) : (
-                      <span className="rounded-full border border-white/15 bg-white/5 px-2 py-0.5 text-xs text-white/70">
-                        Pasif
-                      </span>
-                    )}
-                  </div>
-                  <form action={`/api/admin/tables/${t.id}/toggle`} method="post">
-                    <button className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-white/80 hover:bg-white/10">
-                      {t.isActive ? "Pasif Yap" : "Aktif Yap"}
-                    </button>
-                  </form>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
+        <Link 
+          href="/admin/masalar/qr" 
+          className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-sky-500/20 to-sky-600/20 px-4 py-2.5 text-sm font-semibold text-sky-400 border border-sky-500/30 transition hover:bg-sky-500/30"
+        >
+          <QrCode className="h-4 w-4" />
+          QR Kodları
+        </Link>
       </div>
+
+      <TableClient initialTables={tables} areas={areas} />
     </div>
   );
 }

@@ -1,151 +1,145 @@
 import Image from "next/image";
 import { Navbar } from "@/components/Navbar";
 import { prisma } from "@/lib/prisma";
+import { Utensils, Info } from "lucide-react";
+import { Metadata } from "next";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+export const metadata: Metadata = {
+  title: "Menü & Fiyatlar",
+  description: "Kahvaltı Konağı güncel menüsü. Kırıkkale açık büfe kahvaltı fiyatları, cafe bölümü taze kahveleri, tatlı çeşitleri (tiramisu, ekler) ve detaylı menü listesi.",
+  keywords: ["Kırıkkale kahvaltı fiyatları", "Kahvaltı Konağı menü", "Kırıkkale cafe menüsü", "açık büfe kahvaltı menüsü"],
+  alternates: {
+    canonical: "/menu",
+  },
+};
 
-function formatTryFromCents(priceCents: number | null) {
-  if (priceCents === null || priceCents === undefined) return "—";
-  const value = priceCents / 100;
-  return new Intl.NumberFormat("tr-TR", {
-    style: "currency",
-    currency: "TRY",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value);
-}
+export const revalidate = 3600; // 1 saatte bir ISR ile yenile
 
-// next/image için "remotePatterns" gerektirmeyen basit passthrough loader.
-// (Admin panelde imageUrl alanı sonradan devreye girse bile build/runtime sorunlarına takılmasın.)
-const passthroughImageLoader = ({ src }: { src: string }) => src;
+type Props = {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+};
 
-export default async function MenuPage() {
-  const categories = await prisma.category.findMany({
+export default async function MenuPage({ searchParams }: Props) {
+  const resolvedParams = await searchParams;
+  const table = resolvedParams.table as string | undefined;
+
+  // Fetch active categories and their active products
+  const categoriesRaw = await prisma.category.findMany({
     where: { isActive: true },
-    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+    orderBy: { sortOrder: "asc" },
     include: {
       products: {
         where: { isActive: true },
-        orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-      },
-    },
+        orderBy: { sortOrder: "asc" }
+      }
+    }
   });
 
+  const categories = categoriesRaw.filter(c => c.products.length > 0);
+
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="flex min-h-screen flex-col bg-zinc-950 text-zinc-100 selection:bg-amber-500/30">
       <Navbar />
 
-      <main className="flex-1 bg-white text-slate-900">
-        <div className="mx-auto max-w-6xl px-5 py-10">
-          <header>
-            <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">Menü</h1>
-            <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600">
-              Kategorilere tıklayarak ürünleri hızlıca inceleyebilirsiniz.
+      <main className="flex-1 pb-20">
+        {/* Hero Section */}
+        <div className="relative overflow-hidden border-b border-white/5 bg-gradient-to-b from-zinc-900 to-zinc-950 px-5 pb-10 pt-16">
+          <div className="absolute inset-0 bg-[radial-gradient(900px_circle_at_50%_0%,rgba(245,158,11,0.1),transparent_50%)]" />
+          <div className="relative mx-auto max-w-5xl text-center">
+            {table ? (
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-1.5 text-sm font-medium text-amber-400">
+                <Utensils className="h-4 w-4" />
+                Hoş Geldiniz, {table}
+              </div>
+            ) : null}
+            <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
+              Dijital <span className="bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent">Menü</span>
+            </h1>
+            <p className="mx-auto mt-4 max-w-xl text-zinc-400">
+              Lezzetlerimizi keşfedin ve siparişinizi garsonunuza iletin. Afiyet olsun!
             </p>
-          </header>
-
-          {/* Kategori sekmeleri */}
-          <div className="sticky top-[72px] z-30 mt-6 border-y border-slate-200 bg-white/90 backdrop-blur">
-            <div className="flex gap-2 overflow-x-auto py-3">
-              {categories.length === 0 ? (
-                <span className="text-sm text-slate-500">Henüz aktif kategori yok.</span>
-              ) : (
-                categories.map((c) => (
-                  <a
-                    key={c.id}
-                    href={`#kategori-${c.id}`}
-                    className="whitespace-nowrap rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
-                  >
-                    {c.name}
-                  </a>
-                ))
-              )}
-            </div>
           </div>
+        </div>
 
-          <div className="mt-8 space-y-12">
+        {/* Category Navigation (Sticky) */}
+        <div className="sticky top-[64px] z-30 border-b border-white/5 bg-zinc-950/80 px-5 backdrop-blur-xl">
+          <div className="mx-auto flex max-w-5xl gap-3 overflow-x-auto py-4 scrollbar-none">
             {categories.map((c) => (
-              <section
+              <a
                 key={c.id}
-                id={`kategori-${c.id}`}
-                className="scroll-mt-36"
+                href={`#cat-${c.id}`}
+                className="flex shrink-0 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-zinc-300 transition-all hover:border-amber-500/50 hover:bg-amber-500/10 hover:text-amber-400 active:scale-95"
               >
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-                  <div>
-                    <h2 className="text-2xl font-semibold tracking-tight">{c.name}</h2>
-                    {c.description ? (
-                      <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-600">
-                        {c.description}
-                      </p>
-                    ) : null}
+                <Utensils className="h-4 w-4" />
+                {c.name}
+              </a>
+            ))}
+          </div>
+        </div>
+
+        {/* Menu Content */}
+        <div className="mx-auto max-w-5xl px-5 pt-10">
+          <div className="space-y-16">
+            {categories.map((c) => (
+              <section key={c.id} id={`cat-${c.id}`} className="scroll-mt-36">
+                {/* Category Header */}
+                <div className="mb-6 flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-900 shadow-inner shadow-white/5">
+                    <Utensils className="h-5 w-5 text-amber-500" />
                   </div>
-                  <div className="text-xs text-slate-500">
-                    {c.products.length} ürün
+                  <div>
+                    <h2 className="text-2xl font-bold tracking-tight text-white">{c.name}</h2>
+                    {c.description && <p className="text-sm text-zinc-500">{c.description}</p>}
                   </div>
                 </div>
 
-                {c.products.length === 0 ? (
-                  <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-600">
-                    Bu kategoride aktif ürün yok.
-                  </div>
-                ) : (
-                  <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {c.products.map((p) => {
-                      const inStock = (p.stockQty ?? 0) > 0;
-                      const imageSrc = p.imageUrl?.trim() ? p.imageUrl.trim() : "/media/logo.png";
-
-                      return (
-                        <article
-                          key={p.id}
-                          className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
-                        >
-                          <div className="relative aspect-[4/3] bg-slate-100">
-                            <Image
-                              src={imageSrc}
-                              alt={p.name}
-                              fill
-                              className={p.imageUrl ? "object-cover" : "object-contain p-8 opacity-70"}
-                              loader={passthroughImageLoader}
-                              unoptimized
-                            />
-                          </div>
-                          <div className="p-4">
-                            <div className="flex items-start justify-between gap-3">
-                              <h3 className="text-base font-semibold leading-6">{p.name}</h3>
-                              {inStock ? (
-                                <span className="shrink-0 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                                  Stok: {p.stockQty}
-                                </span>
-                              ) : (
-                                <span className="shrink-0 rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-700">
-                                  Tükendi
-                                </span>
-                              )}
-                            </div>
-
-                            {p.description ? (
-                              <p className="mt-2 text-sm leading-7 text-slate-600">{p.description}</p>
-                            ) : null}
-
-                            <div className="mt-4 flex items-center justify-between">
-                              <div className="text-base font-semibold text-slate-900">
-                                {formatTryFromCents(p.priceCents)}
-                              </div>
-                            </div>
-                          </div>
-                        </article>
-                      );
-                    })}
-                  </div>
-                )}
+                {/* Products Grid */}
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {c.products.map((p) => (
+                    <div
+                      key={p.id}
+                      className="group flex h-full flex-col overflow-hidden rounded-2xl border border-white/5 bg-white/[0.02] p-5 transition-all duration-300 hover:border-amber-500/30 hover:bg-white/[0.04] hover:shadow-2xl hover:shadow-amber-500/5"
+                    >
+                      <div className="flex flex-1 flex-col">
+                        <div className="flex items-start justify-between gap-4">
+                          <h3 className="text-lg font-semibold text-zinc-100 group-hover:text-amber-400 transition-colors">
+                            {p.name}
+                          </h3>
+                          {p.stockQty <= 0 && (
+                            <span className="shrink-0 rounded-full bg-red-500/10 px-2 py-0.5 text-[10px] font-bold tracking-wider text-red-500 uppercase">
+                              Tükendi
+                            </span>
+                          )}
+                        </div>
+                        {p.description && (
+                          <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+                            {p.description}
+                          </p>
+                        )}
+                        <div className="mt-auto pt-4 flex items-center justify-between">
+                          <span className="text-xl font-bold text-amber-500">
+                            {p.priceCents ? `${(p.priceCents / 100).toLocaleString("tr-TR")} ₺` : '-'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </section>
             ))}
+          </div>
+
+          <div className="mt-20 border-t border-white/5 pt-10 text-center">
+            <div className="inline-flex items-center justify-center gap-2 rounded-full border border-white/10 bg-zinc-900 px-5 py-2 text-sm text-zinc-400">
+              <Info className="h-4 w-4" />
+              Fiyatlarımıza KDV dahildir.
+            </div>
+            <div className="mt-10 mb-5 flex justify-center opacity-30">
+              <Image src="/media/logo.png" alt="Logo" width={60} height={60} className="grayscale" />
+            </div>
           </div>
         </div>
       </main>
     </div>
   );
 }
-

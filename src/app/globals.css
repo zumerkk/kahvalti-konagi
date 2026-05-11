@@ -29,3 +29,24 @@ body {
 html {
   scroll-behavior: smooth;
 }
+
+/* Dark mode select/option styling */
+select,
+select option {
+  background-color: #18181b;
+  color: #e4e4e7;
+}
+
+select option:checked {
+  background-color: #f59e0b;
+  color: #000;
+}
+
+/* Hide scrollbar for category tabs */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}

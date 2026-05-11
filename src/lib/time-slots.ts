@@ -1,7 +1,8 @@
-import { addMinutes, format, parse } from "date-fns";
+import { addMinutes, format, parse, isBefore, isAfter, isEqual } from "date-fns";
 import type { ServiceType } from "@/lib/services";
 
 export const SLOT_MINUTES = 30 as const;
+export const RESERVATION_DURATION_MINUTES = 120 as const;
 
 export function serviceWindow(service: ServiceType) {
   return service === "BREAKFAST"
@@ -26,5 +27,15 @@ export function getTimeSlots(service: ServiceType) {
 
 export function isAllowedTime(service: ServiceType, time: string) {
   return getTimeSlots(service).includes(time);
+}
+
+export function isTimeOverlap(time1: string, time2: string): boolean {
+  const t1 = parse(time1, "HH:mm", new Date(0));
+  const t2 = parse(time2, "HH:mm", new Date(0));
+  
+  const t1End = addMinutes(t1, RESERVATION_DURATION_MINUTES);
+  const t2End = addMinutes(t2, RESERVATION_DURATION_MINUTES);
+
+  return (isBefore(t1, t2End) && isAfter(t1End, t2));
 }
 

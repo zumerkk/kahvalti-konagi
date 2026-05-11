@@ -2,18 +2,36 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
-
-async function ensureSettings() {
-  return prisma.settings.upsert({
-    where: { id: "singleton" },
-    update: {},
-    create: { id: "singleton", breakfastPricePerPerson: 350 },
-    select: { breakfastPricePerPerson: true },
-  });
-}
+export const revalidate = 3600; // API Cache (1 hour)
 
 export async function GET() {
-  const settings = await ensureSettings();
-  return NextResponse.json({ ok: true, settings });
+  try {
+    const s = await prisma.settings.findUnique({
+      where: { id: "singleton" },
+      select: {
+        breakfastPricePerPerson: true,
+        onlineReservationsActive: true,
+        maxPartySize: true,
+        minPartySize: true,
+      },
+    });
+    if (!s) {
+      // Varsayılan değerler dönelim
+      return NextResponse.json({
+        ok: true,
+        settings: {
+          breakfastPricePerPerson: 350,
+          onlineReservationsActive: true,
+          maxPartySize: 4,
+          minPartySize: 1,
+        },
+      });
+    }
+    return NextResponse.json({ ok: true, settings: s });
+  } catch (error) {
+    return NextResponse.json(
+      { ok: false, error: "Ayarlar yüklenemedi." },
+      { status: 500 },
+    );
+  }
 }
-

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { isAllowedDate, isAllowedTime, toDbDate } from "@/lib/reservation-rules";
+import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 
@@ -30,48 +30,62 @@ export async function GET(req: Request) {
     );
   }
 
-  const serviceType: ServiceType = serviceTypeRaw;
   if (!isAllowedDate(date)) {
     return NextResponse.json(
       { ok: false, error: "Tarih geçersiz." },
       { status: 400 },
     );
   }
-  if (!isAllowedTime(serviceType, time)) {
+  if (!isAllowedTime(serviceTypeRaw, time)) {
     return NextResponse.json(
       { ok: false, error: "Seçilen servis için saat aralığı geçersiz." },
       { status: 400 },
     );
   }
 
-  const closed = await prisma.closedDate.findUnique({
-    where: { date: toDbDate(date) },
-    select: { reason: true },
+  // Kapalı gün kontrolü
+  const closedDay = await prisma.closedDate.findUnique({
+    where: { date: toDbDate(date) }
   });
-  if (closed) {
-    return NextResponse.json({ ok: true, closed: true, reason: closed.reason ?? null, tables: [] });
+  if (closedDay) {
+    return NextResponse.json({ ok: true, closed: true, reason: closedDay.reason || "Kapalı gün", tables: [] });
   }
 
-  const [tables, reservations] = await Promise.all([
-    prisma.table.findMany({
-      where: { isActive: true, areaId },
-      orderBy: { name: "asc" },
-      select: { id: true, name: true },
-    }),
-    prisma.reservation.findMany({
-      where: {
-        serviceType,
-        date: toDbDate(date),
-        time,
-        status: "BOOKED",
-        table: { areaId },
-      },
-      select: { tableId: true },
-    }),
-  ]);
+  // Masaları getir
+  const allTables = await prisma.table.findMany({
+    where: { areaId, isActive: true },
+    select: { id: true, name: true }
+  });
 
-  const reserved = new Set(reservations.map((r) => r.tableId));
-  const available = tables.filter((t) => !reserved.has(t.id));
+  // Dolu masaları bul
+  const bookedReservations = await prisma.reservation.findMany({
+    where: {
+      serviceType: serviceTypeRaw as ServiceType,
+      date: toDbDate(date),
+      areaId,
+      status: {
+        in: [
+          "PENDING",
+          "BOOKED",
+          "CONFIRMED",
+          "ARRIVED",
+          "SEATED",
+          "DEPOSIT_PENDING",
+          "DEPOSIT_RECEIVED"
+        ]
+      }
+    },
+    select: { tableId: true, time: true }
+  });
+
+  // time-slots isTimeOverlap fonksiyonu eklendiği için import edelim
+  const { isTimeOverlap } = await import("@/lib/time-slots");
+
+  const bookedIds = bookedReservations
+    .filter((r) => isTimeOverlap(r.time, time))
+    .map((r) => r.tableId);
+  
+  const available = allTables.filter((t) => !bookedIds.includes(t.id));
 
   return NextResponse.json({ ok: true, closed: false, tables: available });
 }

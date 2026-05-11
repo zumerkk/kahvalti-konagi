@@ -1,7 +1,7 @@
 import Link from "next/link";
+import { Layers } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { AdminTopbar } from "@/components/admin/AdminTopbar";
-import { MenuCategoriesManager } from "@/components/admin/MenuCategoriesManager";
+import CategoryClient from "./CategoryClient";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -9,44 +9,33 @@ export const revalidate = 0;
 
 export default async function AdminMenuCategoriesPage() {
   const categories = await prisma.category.findMany({
-    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-    select: {
-      id: true,
-      name: true,
-      description: true,
-      sortOrder: true,
-      isActive: true,
-      _count: { select: { products: true } },
-    },
+    orderBy: { sortOrder: "asc" },
+    include: {
+      _count: {
+        select: { products: true }
+      }
+    }
   });
 
-  const initialCategories = categories.map((c) => ({
-    id: c.id,
-    name: c.name,
-    description: c.description,
-    sortOrder: c.sortOrder,
-    isActive: c.isActive,
-    productsCount: c._count.products,
-  }));
-
   return (
-    <div>
-      <AdminTopbar
-        title="Menü / Kategoriler"
-        description="Kategori ekleyin/güncelleyin. Pasif kategoriler ürün seçimi ve menüde görünmez."
-      />
-
-      <div className="mb-6 flex items-center gap-4 text-sm text-white/70">
-        <span className="text-white">Kategoriler</span>
-        <Link href="/admin/menu/urunler" className="hover:text-white">
-          Ürünler
-        </Link>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-end justify-between">
+        <div>
+          <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
+            <Layers className="h-6 w-6 text-violet-400" />
+            Menü / Kategoriler
+          </h1>
+          <p className="mt-1 text-sm text-white/40">Kategori ekleyin ve düzenleyin</p>
+        </div>
+        <div className="flex items-center gap-2 text-sm text-white/40">
+          <span className="text-white font-medium">Kategoriler</span>
+          <span>·</span>
+          <Link href="/admin/menu/urunler" className="text-amber-400 hover:text-amber-300">Ürünler →</Link>
+        </div>
       </div>
 
-      <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
-        <MenuCategoriesManager initialCategories={initialCategories} />
-      </div>
+      <CategoryClient initialCategories={categories} />
     </div>
   );
 }
-
