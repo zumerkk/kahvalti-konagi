@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { isAdminRequest } from "@/lib/auth";
 import { toDbDate } from "@/lib/reservation-rules";
+import { revalidatePath } from "next/cache";
 
 export const runtime = "nodejs";
 
@@ -29,6 +30,6 @@ export async function POST(req: Request) {
     create: { date: toDbDate(parsed.data.date), reason },
   });
 
+  revalidatePath("/admin/kapali-gunler");
   return NextResponse.json({ ok: true });
 }
-

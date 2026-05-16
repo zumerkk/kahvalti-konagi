@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { getTimeSlots, isAllowedDate } from "@/lib/reservation-rules";
 import { Input, Select, TextArea } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -118,7 +118,7 @@ export function ReservationForm() {
     setTime((prev) => (timeSlots.includes(prev) ? prev : (timeSlots[0] ?? "")));
   }, [timeSlots]);
 
-  async function loadAvailability(d: string, t: string) {
+  const loadAvailability = useCallback(async (d: string, t: string) => {
     if (!d || !t || !areaId) return;
     if (!isAllowedDate(d)) {
       setTables([]);
@@ -161,11 +161,11 @@ export function ReservationForm() {
     } finally {
       setLoadingTables(false);
     }
-  }
+  }, [areaId, serviceType]);
 
   useEffect(() => {
     if (date) void loadAvailability(date, time);
-  }, [date, time, areaId, serviceType]);
+  }, [date, time, loadAvailability]);
 
   async function submit() {
     setSubmitting(true);
@@ -377,8 +377,8 @@ export function ReservationForm() {
             !phone.trim() ||
             tckn.length !== 11 ||
             !isAllowedDate(date) ||
-            partySize < 1 ||
-            partySize > 4 ||
+            partySize < minPartySize ||
+            partySize > maxPartySize ||
             !!closedReason
           }
         >

@@ -1,26 +1,65 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Input";
 
 type Area = { id: string; title: string; code: string };
+type ReservationStatus =
+  | "PENDING"
+  | "BOOKED"
+  | "CONFIRMED"
+  | "ARRIVED"
+  | "SEATED"
+  | "COMPLETED"
+  | "CANCELLED"
+  | "NO_SHOW"
+  | "POSTPONED"
+  | "DEPOSIT_PENDING"
+  | "DEPOSIT_RECEIVED";
+type ReservationSource = "WEB" | "PHONE" | "WHATSAPP" | "INSTAGRAM" | "WALK_IN" | "ADMIN" | "OTHER";
 
 type ReservationRow = {
   id: string;
-  status: "BOOKED" | "CANCELLED";
+  status: ReservationStatus;
+  source: ReservationSource;
   serviceType: "BREAKFAST" | "CAFE";
   date: string;
   time: string;
   partySize: number;
   fullName: string;
   phone: string;
-  tcknLast4: string;
+  tcknLast4: string | null;
   note: string | null;
+  totalAmount: number | null;
   createdAt: string;
   area: { id: string; title: string; code: string };
   table: { id: string; name: string };
 };
+
+const statusOptions: Array<{ value: ReservationStatus; label: string }> = [
+  { value: "PENDING", label: "Beklemede" },
+  { value: "CONFIRMED", label: "Onaylandı" },
+  { value: "ARRIVED", label: "Geldi" },
+  { value: "SEATED", label: "Oturtuldu" },
+  { value: "COMPLETED", label: "Tamamlandı" },
+  { value: "CANCELLED", label: "İptal" },
+  { value: "NO_SHOW", label: "Gelmedi" },
+  { value: "POSTPONED", label: "Ertelendi" },
+  { value: "DEPOSIT_PENDING", label: "Kapora Bekleniyor" },
+  { value: "DEPOSIT_RECEIVED", label: "Kapora Alındı" },
+];
+
+const activeStatuses: ReservationStatus[] = [
+  "PENDING",
+  "BOOKED",
+  "CONFIRMED",
+  "ARRIVED",
+  "SEATED",
+  "DEPOSIT_PENDING",
+  "DEPOSIT_RECEIVED",
+];
 
 function fmtDate(iso: string) {
   try {
@@ -42,14 +81,47 @@ function serviceLabel(s: ReservationRow["serviceType"]) {
   return s === "BREAKFAST" ? "Kahvaltı" : "Kafe";
 }
 
-export function AdminReservationsBrowser() {
-  const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
+function sourceLabel(s: ReservationSource) {
+  const labels: Record<ReservationSource, string> = {
+    WEB: "Web",
+    PHONE: "Telefon",
+    WHATSAPP: "WhatsApp",
+    INSTAGRAM: "Instagram",
+    WALK_IN: "Kapıdan",
+    ADMIN: "Admin",
+    OTHER: "Diğer",
+  };
+  return labels[s];
+}
 
+function statusLabel(s: ReservationStatus) {
+  if (s === "BOOKED") return "Aktif";
+  return statusOptions.find((option) => option.value === s)?.label ?? s;
+}
+
+function statusClass(s: ReservationStatus) {
+  if (s === "CANCELLED" || s === "NO_SHOW") {
+    return "border-red-500/30 bg-red-500/10 text-red-200";
+  }
+  if (s === "COMPLETED") {
+    return "border-sky-500/30 bg-sky-500/10 text-sky-200";
+  }
+  if (s === "DEPOSIT_PENDING" || s === "POSTPONED") {
+    return "border-amber-500/30 bg-amber-500/10 text-amber-100";
+  }
+  return "border-emerald-500/30 bg-emerald-500/10 text-emerald-200";
+}
+
+function canCancel(status: ReservationStatus) {
+  return activeStatuses.includes(status);
+}
+
+export function AdminReservationsBrowser() {
   const [areas, setAreas] = useState<Area[]>([]);
-  const [date, setDate] = useState(today);
+  const [date, setDate] = useState("");
   const [serviceType, setServiceType] = useState<"" | "BREAKFAST" | "CAFE">("");
   const [areaId, setAreaId] = useState("");
-  const [status, setStatus] = useState<"" | "BOOKED" | "CANCELLED">("");
+  const [status, setStatus] = useState<"" | ReservationStatus>("");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -113,6 +185,28 @@ export function AdminReservationsBrowser() {
     }
   }
 
+  async function confirmReservation(id: string) {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/reservations/${id}/status`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "CONFIRMED" }),
+      });
+      const json = (await res.json()) as { ok: boolean; error?: string };
+      if (!res.ok || !json.ok) {
+        setError(json.error ?? "Onaylanamadı.");
+        return;
+      }
+      await loadReservations();
+    } catch {
+      setError("Onaylanamadı.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   useEffect(() => {
     void loadAreas();
     void loadReservations();
@@ -149,19 +243,27 @@ export function AdminReservationsBrowser() {
           <Select
             label="Durum"
             value={status}
-            onChange={(e) => setStatus(e.target.value as "" | "BOOKED" | "CANCELLED")}
+            onChange={(e) => setStatus(e.target.value as "" | ReservationStatus)}
           >
             <option value="">Tümü</option>
-            <option value="BOOKED">Aktif</option>
-            <option value="CANCELLED">İptal</option>
+            {statusOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
           </Select>
         </div>
 
         <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="text-sm text-white/60">Son 200 kayıt listelenir.</div>
-          <div className="flex items-center gap-3">
+          <div className="text-sm text-white/60">
+            {date ? `${date} için ${reservations.length} kayıt` : `Son ${reservations.length} kayıt listeleniyor.`}
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Button variant="ghost" onClick={() => setDate("")} disabled={loading || !date}>
+              Tarihi Temizle
+            </Button>
             <Button variant="secondary" onClick={loadReservations} disabled={loading}>
-              {loading ? "Yükleniyor…" : "Filtrele"}
+              {loading ? "Yükleniyor..." : "Filtrele"}
             </Button>
           </div>
         </div>
@@ -173,7 +275,6 @@ export function AdminReservationsBrowser() {
         ) : null}
       </div>
 
-      {/* Mobile: cards */}
       <div className="space-y-3 md:hidden">
         {reservations.map((r) => (
           <div
@@ -186,25 +287,31 @@ export function AdminReservationsBrowser() {
                   {fmtDate(r.date)} {r.time}
                 </div>
                 <div className="mt-1 text-xs text-white/60">
-                  {serviceLabel(r.serviceType)} · {r.area.title} · Masa {r.table.name}
+                  {serviceLabel(r.serviceType)} · {sourceLabel(r.source)} · {r.area.title} · Masa{" "}
+                  {r.table.name}
                 </div>
               </div>
               <div className="flex flex-col items-end gap-2">
-                {r.status === "BOOKED" ? (
-                  <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-200">
-                    Aktif
-                  </span>
-                ) : (
-                  <span className="rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1 text-xs text-red-200">
-                    İptal
-                  </span>
-                )}
-                {r.status === "BOOKED" ? (
+                <span className={`rounded-full border px-3 py-1 text-xs ${statusClass(r.status)}`}>
+                  {statusLabel(r.status)}
+                </span>
+                {r.status === "PENDING" ? (
                   <button
-                    onClick={() => cancelReservation(r.id)}
-                    className="rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1 text-xs text-red-200 hover:bg-red-500/15 disabled:opacity-50"
+                    onClick={() => confirmReservation(r.id)}
+                    className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-200 hover:bg-emerald-500/15 disabled:opacity-50"
                     disabled={loading}
                   >
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    Onayla
+                  </button>
+                ) : null}
+                {canCancel(r.status) ? (
+                  <button
+                    onClick={() => cancelReservation(r.id)}
+                    className="inline-flex items-center gap-1 rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1 text-xs text-red-200 hover:bg-red-500/15 disabled:opacity-50"
+                    disabled={loading}
+                  >
+                    <XCircle className="h-3.5 w-3.5" />
                     İptal Et
                   </button>
                 ) : null}
@@ -218,7 +325,7 @@ export function AdminReservationsBrowser() {
               </div>
               <div>
                 <div className="text-xs text-white/50">TCKN</div>
-                <div className="text-white">****{r.tcknLast4}</div>
+                <div className="text-white">{r.tcknLast4 ? `****${r.tcknLast4}` : "-"}</div>
               </div>
               <div className="col-span-2">
                 <div className="text-xs text-white/50">Ad Soyad</div>
@@ -226,7 +333,7 @@ export function AdminReservationsBrowser() {
               </div>
               <div className="col-span-2">
                 <div className="text-xs text-white/50">Telefon</div>
-                <div className="text-white">{r.phone}</div>
+                <div className="text-white">{r.phone || "-"}</div>
               </div>
               {r.note ? (
                 <div className="col-span-2">
@@ -247,7 +354,6 @@ export function AdminReservationsBrowser() {
         ) : null}
       </div>
 
-      {/* Desktop: table */}
       <div className="hidden overflow-hidden rounded-3xl border border-white/10 bg-white/5 md:block">
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
@@ -255,6 +361,7 @@ export function AdminReservationsBrowser() {
               <tr>
                 <th className="px-4 py-3 text-left font-medium">Tarih/Saat</th>
                 <th className="px-4 py-3 text-left font-medium">Servis</th>
+                <th className="px-4 py-3 text-left font-medium">Kaynak</th>
                 <th className="px-4 py-3 text-left font-medium">Alan</th>
                 <th className="px-4 py-3 text-left font-medium">Masa</th>
                 <th className="px-4 py-3 text-left font-medium">Kişi</th>
@@ -275,41 +382,49 @@ export function AdminReservationsBrowser() {
                     <div className="text-xs text-white/50">Oluşturma: {fmtDateTime(r.createdAt)}</div>
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">{serviceLabel(r.serviceType)}</td>
+                  <td className="px-4 py-3 whitespace-nowrap">{sourceLabel(r.source)}</td>
                   <td className="px-4 py-3 whitespace-nowrap">{r.area.title}</td>
                   <td className="px-4 py-3 whitespace-nowrap">{r.table.name}</td>
                   <td className="px-4 py-3 whitespace-nowrap">{r.partySize}</td>
                   <td className="px-4 py-3 whitespace-nowrap">{r.fullName}</td>
-                  <td className="px-4 py-3 whitespace-nowrap">{r.phone}</td>
-                  <td className="px-4 py-3 whitespace-nowrap">****{r.tcknLast4}</td>
+                  <td className="px-4 py-3 whitespace-nowrap">{r.phone || "-"}</td>
                   <td className="px-4 py-3 whitespace-nowrap">
-                    {r.status === "BOOKED" ? (
-                      <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-200">
-                        Aktif
-                      </span>
-                    ) : (
-                      <span className="rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1 text-xs text-red-200">
-                        İptal
-                      </span>
-                    )}
+                    {r.tcknLast4 ? `****${r.tcknLast4}` : "-"}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
-                    {r.status === "BOOKED" ? (
+                    <span className={`rounded-full border px-3 py-1 text-xs ${statusClass(r.status)}`}>
+                      {statusLabel(r.status)}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    {r.status === "PENDING" ? (
                       <button
-                        onClick={() => cancelReservation(r.id)}
-                        className="rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1 text-xs text-red-200 hover:bg-red-500/15 disabled:opacity-50"
+                        onClick={() => confirmReservation(r.id)}
+                        className="mr-2 inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-200 hover:bg-emerald-500/15 disabled:opacity-50"
                         disabled={loading}
                       >
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        Onayla
+                      </button>
+                    ) : null}
+                    {canCancel(r.status) ? (
+                      <button
+                        onClick={() => cancelReservation(r.id)}
+                        className="inline-flex items-center gap-1 rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1 text-xs text-red-200 hover:bg-red-500/15 disabled:opacity-50"
+                        disabled={loading}
+                      >
+                        <XCircle className="h-3.5 w-3.5" />
                         İptal Et
                       </button>
                     ) : (
-                      <span className="text-xs text-white/40">—</span>
+                      <span className="text-xs text-white/40">-</span>
                     )}
                   </td>
                 </tr>
               ))}
               {!loading && reservations.length === 0 ? (
                 <tr>
-                  <td className="px-4 py-8 text-center text-white/60" colSpan={10}>
+                  <td className="px-4 py-8 text-center text-white/60" colSpan={11}>
                     Kayıt bulunamadı.
                   </td>
                 </tr>
@@ -321,4 +436,3 @@ export function AdminReservationsBrowser() {
     </div>
   );
 }
-

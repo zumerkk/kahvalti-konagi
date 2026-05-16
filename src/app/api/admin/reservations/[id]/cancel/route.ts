@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isAdminRequest } from "@/lib/auth";
+import { revalidatePath } from "next/cache";
 
 export const runtime = "nodejs";
 
@@ -16,9 +17,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       data: { status: "CANCELLED" },
       select: { id: true, status: true },
     });
+    revalidatePath("/admin/rezervasyonlar");
     return NextResponse.json({ ok: true, reservation });
   } catch {
     return NextResponse.json({ ok: false, error: "Rezervasyon bulunamadı." }, { status: 404 });
   }
 }
-

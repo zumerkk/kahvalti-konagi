@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Plus, Package, CheckCircle, XCircle, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { addProduct, updateProduct, deleteProduct } from "./actions";
@@ -24,6 +25,7 @@ export default function ProductClient({
   initialProducts: Product[];
   categories: Category[];
 }) {
+  const router = useRouter();
   const [isAdding, setIsAdding] = useState(false);
   const [newName, setNewName] = useState("");
   const [newCategoryId, setNewCategoryId] = useState("");
@@ -35,7 +37,13 @@ export default function ProductClient({
     if (!newName.trim() || !newCategoryId) return toast.error("Ürün adı ve kategori zorunludur.");
     
     setIsAdding(true);
-    const priceCents = newPrice ? Math.round(parseFloat(newPrice) * 100) : undefined;
+    const normalizedPrice = newPrice.trim().replace(",", ".");
+    const priceValue = normalizedPrice ? Number(normalizedPrice) : null;
+    if (priceValue != null && !Number.isFinite(priceValue)) {
+      setIsAdding(false);
+      return toast.error("Fiyat geçersiz.");
+    }
+    const priceCents = priceValue != null ? Math.round(priceValue * 100) : undefined;
     
     const res = await addProduct({ 
       name: newName, 
@@ -50,8 +58,10 @@ export default function ProductClient({
     if (res.success) {
       toast.success("Ürün eklendi.");
       setNewName("");
+      setNewCategoryId("");
       setNewPrice("");
       setNewStock("");
+      router.refresh();
     } else {
       toast.error(res.error);
     }
@@ -59,15 +69,23 @@ export default function ProductClient({
 
   const handleToggleActive = async (p: Product) => {
     const res = await updateProduct(p.id, { isActive: !p.isActive });
-    if (res.success) toast.success("Ürün durumu güncellendi.");
-    else toast.error(res.error);
+    if (res.success) {
+      toast.success("Ürün durumu güncellendi.");
+      router.refresh();
+    } else {
+      toast.error(res.error);
+    }
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm("Bu ürünü silmek istediğinize emin misiniz?")) return;
     const res = await deleteProduct(id);
-    if (res.success) toast.success("Ürün silindi.");
-    else toast.error(res.error);
+    if (res.success) {
+      toast.success("Ürün silindi.");
+      router.refresh();
+    } else {
+      toast.error(res.error);
+    }
   };
 
   return (
@@ -87,8 +105,9 @@ export default function ProductClient({
           <select 
             value={newCategoryId} onChange={e => setNewCategoryId(e.target.value)}
             className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-2.5 text-sm text-white outline-none transition focus:border-amber-500/30"
+            disabled={categories.length === 0}
           >
-            <option value="">Kategori seçin</option>
+            <option value="">{categories.length === 0 ? "Önce kategori ekleyin" : "Kategori seçin"}</option>
             {categories.map(c => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}

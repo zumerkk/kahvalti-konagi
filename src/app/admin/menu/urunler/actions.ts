@@ -23,8 +23,9 @@ export async function addProduct(data: {
       },
     });
     revalidatePath("/admin/menu/urunler");
+    revalidatePath("/menu");
     return { success: true };
-  } catch (error) {
+  } catch {
     return { success: false, error: "Ürün eklenirken bir hata oluştu." };
   }
 }
@@ -46,8 +47,9 @@ export async function updateProduct(
       data,
     });
     revalidatePath("/admin/menu/urunler");
+    revalidatePath("/menu");
     return { success: true };
-  } catch (error) {
+  } catch {
     return { success: false, error: "Ürün güncellenirken bir hata oluştu." };
   }
 }
@@ -58,8 +60,9 @@ export async function deleteProduct(id: string) {
       where: { id },
     });
     revalidatePath("/admin/menu/urunler");
+    revalidatePath("/menu");
     return { success: true };
-  } catch (error) {
+  } catch {
     return { success: false, error: "Ürün silinirken bir hata oluştu." };
   }
 }

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@/generated/prisma/client";
 
 export async function addCategory(data: { name: string; description?: string; sortOrder: number }) {
   try {
@@ -13,9 +14,11 @@ export async function addCategory(data: { name: string; description?: string; so
       },
     });
     revalidatePath("/admin/menu/kategoriler");
+    revalidatePath("/admin/menu/urunler");
+    revalidatePath("/menu");
     return { success: true };
-  } catch (error: any) {
-    if (error.code === "P2002") {
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
       return { success: false, error: "Bu kategori adı zaten mevcut." };
     }
     return { success: false, error: "Kategori eklenirken bir hata oluştu." };
@@ -34,9 +37,11 @@ export async function updateCategory(id: string, data: { name: string; descripti
       },
     });
     revalidatePath("/admin/menu/kategoriler");
+    revalidatePath("/admin/menu/urunler");
+    revalidatePath("/menu");
     return { success: true };
-  } catch (error: any) {
-    if (error.code === "P2002") {
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
       return { success: false, error: "Bu kategori adı zaten mevcut." };
     }
     return { success: false, error: "Kategori güncellenirken bir hata oluştu." };
@@ -55,8 +60,10 @@ export async function deleteCategory(id: string) {
       where: { id },
     });
     revalidatePath("/admin/menu/kategoriler");
+    revalidatePath("/admin/menu/urunler");
+    revalidatePath("/menu");
     return { success: true };
-  } catch (error) {
+  } catch {
     return { success: false, error: "Kategori silinirken bir hata oluştu." };
   }
 }

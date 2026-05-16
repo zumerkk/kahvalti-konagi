@@ -1,11 +1,24 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { toDbDate } from "@/lib/reservation-rules";
+import { isAllowedDate, isAllowedTime, toDbDate } from "@/lib/reservation-rules";
 import { prisma } from "@/lib/prisma";
 import { encryptPII } from "@/lib/crypto";
 import { logAudit } from "@/lib/audit-logger";
+import { isAdminRequest } from "@/lib/auth";
+import { isTimeOverlap } from "@/lib/time-slots";
+import { Prisma } from "@/generated/prisma/client";
 
 export const runtime = "nodejs";
+
+const ACTIVE_RESERVATION_STATUSES = [
+  "PENDING",
+  "BOOKED",
+  "CONFIRMED",
+  "ARRIVED",
+  "SEATED",
+  "DEPOSIT_PENDING",
+  "DEPOSIT_RECEIVED",
+] as const;
 
 const AdminReservationCreateSchema = z.object({
   serviceType: z.enum(["BREAKFAST", "CAFE"]),
@@ -16,7 +29,7 @@ const AdminReservationCreateSchema = z.object({
   tableId: z.string().min(1),
   fullName: z.string().min(2).max(120),
   phone: z.string().max(20).optional().or(z.literal("")),
-  tckn: z.string().max(11).optional().or(z.literal("")),
+  tckn: z.string().regex(/^\d{11}$/).optional().or(z.literal("")),
   partySize: z.coerce.number().int().min(1),
   note: z.string().max(500).optional().or(z.literal("")),
   status: z.enum([
@@ -27,7 +40,10 @@ const AdminReservationCreateSchema = z.object({
 });
 
 export async function POST(req: Request) {
-  // Authentication handled by middleware for /api/admin/*
+  if (!(await isAdminRequest(req))) {
+    return NextResponse.json({ ok: false, error: "Yetkisiz." }, { status: 401 });
+  }
+
   const body = await req.json().catch(() => null);
   const parsed = AdminReservationCreateSchema.safeParse(body);
   if (!parsed.success) {
@@ -38,14 +54,83 @@ export async function POST(req: Request) {
   }
 
   const { serviceType, source, areaId, date, time, tableId, fullName, phone, tckn, partySize, status } = parsed.data;
+  const cleanedFullName = fullName.trim();
+  const cleanedPhone = phone?.trim() || "";
   const note = parsed.data.note?.trim() ? parsed.data.note.trim() : null;
+
+  if (!cleanedFullName) {
+    return NextResponse.json({ ok: false, error: "Ad soyad zorunlu." }, { status: 400 });
+  }
+
+  if (!isAllowedDate(date)) {
+    return NextResponse.json({ ok: false, error: "Tarih geçersiz." }, { status: 400 });
+  }
+
+  if (!isAllowedTime(serviceType, time)) {
+    return NextResponse.json(
+      { ok: false, error: "Seçilen servis için saat aralığı geçersiz." },
+      { status: 400 },
+    );
+  }
 
   const dbDate = toDbDate(date);
 
-  const tcknEncrypted = tckn ? encryptPII(tckn) : null;
-  const tcknLast4 = tckn ? tckn.slice(-4) : null;
-
   try {
+    const [settings, closedDay, table] = await Promise.all([
+      prisma.settings.findUnique({ where: { id: "singleton" } }),
+      prisma.closedDate.findUnique({ where: { date: dbDate } }),
+      prisma.table.findFirst({
+        where: { id: tableId, areaId, isActive: true },
+        select: { id: true, name: true },
+      }),
+    ]);
+
+    if (closedDay) {
+      return NextResponse.json(
+        { ok: false, error: closedDay.reason || "Seçilen gün kapalı." },
+        { status: 400 },
+      );
+    }
+
+    if (!table) {
+      return NextResponse.json(
+        { ok: false, error: "Seçilen masa bu alanda bulunamadı veya pasif." },
+        { status: 400 },
+      );
+    }
+
+    const maxPartySize = settings?.maxPartySize ?? 12;
+    const minPartySize = settings?.minPartySize ?? 1;
+    if (partySize < minPartySize || partySize > maxPartySize) {
+      return NextResponse.json(
+        { ok: false, error: `Kişi sayısı ${minPartySize}-${maxPartySize} aralığında olmalı.` },
+        { status: 400 },
+      );
+    }
+
+    const overlappingReservation = await prisma.reservation.findFirst({
+      where: {
+        serviceType,
+        date: dbDate,
+        tableId,
+        status: { in: [...ACTIVE_RESERVATION_STATUSES] },
+      },
+      select: { time: true },
+    });
+
+    if (overlappingReservation && isTimeOverlap(overlappingReservation.time, time)) {
+      return NextResponse.json(
+        { ok: false, error: "Bu masa seçilen saat aralığında dolu. Başka saat veya masa seçin." },
+        { status: 409 },
+      );
+    }
+
+    const cleanedTckn = tckn?.trim() || null;
+    const tcknEncrypted = cleanedTckn ? encryptPII(cleanedTckn) : null;
+    const tcknLast4 = cleanedTckn ? cleanedTckn.slice(-4) : null;
+    const totalAmount =
+      serviceType === "BREAKFAST" ? (settings?.breakfastPricePerPerson ?? 350) * partySize : null;
+
     const reservation = await prisma.reservation.create({
       data: {
         serviceType,
@@ -54,13 +139,14 @@ export async function POST(req: Request) {
         time,
         areaId,
         tableId,
-        fullName,
-        phone: phone || "",
+        fullName: cleanedFullName,
+        phone: cleanedPhone,
         tcknEncrypted,
         tcknLast4,
         partySize,
         note,
         status,
+        totalAmount,
       },
       include: {
         table: { select: { name: true } }
@@ -73,8 +159,8 @@ export async function POST(req: Request) {
       ok: true,
       reservation,
     });
-  } catch (error: any) {
-    if (error.code === 'P2002') {
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
       return NextResponse.json(
         { ok: false, error: "Bu masa aynı saatte başkası tarafından rezerve edilmiş (Çakışma)." },
         { status: 409 },

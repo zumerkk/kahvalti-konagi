@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, ToggleLeft, ToggleRight, Package, Trash2, Edit } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Plus, ToggleLeft, ToggleRight, Package, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { addCategory, updateCategory, deleteCategory } from "./actions";
 
@@ -15,7 +16,7 @@ type Category = {
 };
 
 export default function CategoryClient({ initialCategories }: { initialCategories: Category[] }) {
-  const [categories, setCategories] = useState<Category[]>(initialCategories);
+  const router = useRouter();
   const [isAdding, setIsAdding] = useState(false);
   
   // Add form state
@@ -36,6 +37,7 @@ export default function CategoryClient({ initialCategories }: { initialCategorie
       setNewName("");
       setNewDesc("");
       setNewSort("0");
+      router.refresh();
     } else {
       toast.error(res.error);
     }
@@ -50,6 +52,7 @@ export default function CategoryClient({ initialCategories }: { initialCategorie
     });
     if (res.success) {
       toast.success("Kategori durumu güncellendi.");
+      router.refresh();
     } else {
       toast.error(res.error);
     }
@@ -61,6 +64,7 @@ export default function CategoryClient({ initialCategories }: { initialCategorie
     const res = await deleteCategory(id);
     if (res.success) {
       toast.success("Kategori silindi.");
+      router.refresh();
     } else {
       toast.error(res.error);
     }

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { isAdminRequest } from "@/lib/auth";
 import { Prisma } from "@/generated/prisma/client";
+import { revalidatePath } from "next/cache";
 
 export const runtime = "nodejs";
 
@@ -98,6 +99,9 @@ export async function POST(req: Request) {
     }
     return NextResponse.json({ ok: false, error: "Kaydedilemedi." }, { status: 500 });
   }
+
+  revalidatePath("/admin/menu/urunler");
+  revalidatePath("/menu");
 
   return NextResponse.json({ ok: true });
 }

@@ -3,8 +3,9 @@ import { z } from "zod";
 import { isAllowedDate, isAllowedTime, toDbDate } from "@/lib/reservation-rules";
 import { prisma } from "@/lib/prisma";
 import { encryptPII } from "@/lib/crypto";
-import { logAudit } from "@/lib/audit-logger";
+import { logger, logAudit } from "@/lib/audit-logger";
 import { rateLimit } from "@/lib/rate-limit";
+import { Prisma } from "@/generated/prisma/client";
 
 export const runtime = "nodejs";
 
@@ -177,9 +178,9 @@ export async function POST(req: Request) {
         totalAmount
       },
     });
-  } catch (error: any) {
+  } catch (error) {
     // Prisma unique constraint violation code is P2002
-    if (error.code === 'P2002') {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
       return NextResponse.json(
         { ok: false, error: "Bu masa aynı saatte başkası tarafından rezerve edilmiş. Lütfen başka bir saat veya masa seçin." },
         { status: 409 },
