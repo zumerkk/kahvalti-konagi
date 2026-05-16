@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { format } from "date-fns";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export default async function AuditLogsPage() {
   const logs = await prisma.auditLog.findMany({

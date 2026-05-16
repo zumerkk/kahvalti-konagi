@@ -4,6 +4,7 @@ import { CalendarCheck, Users, Ban, Utensils, AlertTriangle, TrendingUp } from "
 import { startOfDay, endOfDay } from "date-fns";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export default async function AdminDashboard() {
   const today = new Date();

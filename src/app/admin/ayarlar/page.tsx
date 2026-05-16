@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
   const settings = await prisma.settings.findUnique({ where: { id: "singleton" } }) || {

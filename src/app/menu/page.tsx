@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   },
 };
 
-export const revalidate = 3600; // 1 saatte bir ISR ile yenile
+export const dynamic = "force-dynamic";
 
 type Props = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
