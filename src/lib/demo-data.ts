@@ -21,7 +21,7 @@ export const demoProducts = [
   { id: "10", name: "Türk Kahvesi", category: "icecek", price: 60, inStock: true, isActive: true, barcode: "8690000000010", description: "Çifte kavrulmuş." },
   { id: "11", name: "Taze Portakal Suyu", category: "icecek", price: 75, inStock: true, isActive: true, barcode: "8690000000011", description: "Sıkma portakal suyu." },
   { id: "12", name: "Tiramisu", category: "tatli", price: 120, inStock: true, isActive: true, barcode: "8690000000012", description: "Özel İtalyan tarifi." },
-  { id: "23", name: "Açık Büfe Kahvaltı", category: "diger", price: 350, inStock: true, isActive: true, barcode: "8691234567890", description: "Sınırsız açık büfe kahvaltı." },
+  { id: "23", name: "Açık Büfe Kahvaltı", category: "diger", price: 450, inStock: true, isActive: true, barcode: "8691234567890", description: "Sınırsız açık büfe kahvaltı." },
 ];
 
 export const demoTables = [

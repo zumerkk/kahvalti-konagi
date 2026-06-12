@@ -14,32 +14,41 @@ export const metadata: Metadata = {
 
 export default function ReservationPage() {
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="flex flex-1 flex-col bg-background text-[#3d3023] selection:bg-orange-200/50">
       <Navbar />
-      <main className="flex-1">
-        <section className="relative overflow-hidden border-b border-white/10">
-          <div className="absolute inset-0 bg-[radial-gradient(900px_circle_at_20%_0%,rgba(245,158,11,0.22),transparent_55%),radial-gradient(900px_circle_at_80%_10%,rgba(255,255,255,0.06),transparent_55%)]" />
-          <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.65),rgba(0,0,0,0.95))]" />
-          <div className="relative mx-auto max-w-3xl px-5 py-14">
-            <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">Online Rezervasyon</h1>
-            <div className="mt-3 space-y-2 text-white/70 leading-7">
-              <p>
-                Lütfen hizmeti ve alanı seçip uygun saat aralığından devam edin:
-              </p>
-              <ul className="list-disc pl-5">
-                <li>
-                  <b>Kahvaltı</b>: 08:00–14:00
-                </li>
-                <li>
-                  <b>Kafe</b>: 14:00–23:00
-                </li>
-              </ul>
-            </div>
+      
+      <main className="flex-1 pb-20">
+        {/* Header Section */}
+        <section className="relative overflow-hidden border-b border-[#e6dfd5]/40 bg-gradient-to-b from-orange-50/60 to-white py-12 md:py-16">
+          <div className="absolute -left-20 top-0 h-48 w-48 rounded-full bg-orange-400/5 blur-3xl pointer-events-none" />
+          <div className="absolute right-0 bottom-0 h-48 w-48 rounded-full bg-yellow-400/5 blur-3xl pointer-events-none" />
+          
+          <div className="relative mx-auto max-w-3xl px-5 text-center">
+            <span className="text-2xl">🥞</span>
+            <h1 className="mt-3 text-4xl font-extrabold tracking-tight text-[#3d3023] md:text-5xl">
+              Masanızı <span className="bg-gradient-to-r from-orange-600 to-amber-500 bg-clip-text text-transparent">Hemen Ayırtın</span>
+            </h1>
+            <p className="mt-4 text-[#7c6f62] font-semibold leading-relaxed">
+              Kırıkkale'nin en nefis açık büfe kahvaltısı ve cafe keyfi için online rezervasyon formunu doldurun. Masanız anında adınıza rezerve edilsin!
+            </p>
           </div>
         </section>
 
+        {/* Reservation Form Wrapper */}
         <section className="mx-auto max-w-3xl px-5 py-10">
           <ReservationForm />
+        </section>
+
+        {/* Extra Security/Info badging */}
+        <section className="mx-auto max-w-3xl px-5 flex flex-col sm:flex-row gap-6 justify-center items-center mt-6 text-xs text-[#8c7d6c] font-bold">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="h-5 w-5 text-green-600 shrink-0" />
+            <span>%100 Güvenli & KVKK Uyumlu</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Clock className="h-5 w-5 text-orange-500 shrink-0" />
+            <span>Anında Otomatik Masa Ataması</span>
+          </div>
         </section>
       </main>
     </div>

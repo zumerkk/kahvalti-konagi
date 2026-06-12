@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle2, XCircle } from "lucide-react";
+import { CheckCircle2, XCircle, Phone, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Input";
 
@@ -207,6 +207,26 @@ export function AdminReservationsBrowser() {
     }
   }
 
+  function handleWhatsAppAction(r: ReservationRow, templateType: 'confirm' | 'deposit' | 'cancel' | 'general') {
+    const formattedDate = new Date(r.date).toLocaleDateString("tr-TR");
+    let text = "";
+    
+    if (templateType === 'confirm') {
+      text = `Merhaba ${r.fullName}, Kahvaltı Konağı rezervasyonunuz onaylanmıştır. 📅 ${formattedDate} günü saat ⏰ ${r.time}'da ${r.area.title} alanında ${r.table.name} masasında sizi ağırlamaktan mutluluk duyacağız. Keyifli günler dileriz!`;
+    } else if (templateType === 'deposit') {
+      text = `Merhaba ${r.fullName}, Kahvaltı Konağı rezervasyon talebiniz alınmıştır. Rezervasyonunuzu tamamlamak ve kesinleştirmek için kapora ödemenizi yapabilirsiniz. Detaylar için bizimle iletişime geçebilirsiniz. Teşekkür ederiz.`;
+    } else if (templateType === 'cancel') {
+      text = `Merhaba ${r.fullName}, ${formattedDate} tarihindeki rezervasyon talebiniz iptal edilmiştir. Başka bir gün görüşmek dileğiyle. İyi günler dileriz.`;
+    } else {
+      text = `Merhaba ${r.fullName}, Kahvaltı Konağı rezervasyonunuz ile ilgili iletişime geçmek istedik. Rezervasyon detaylarınız: ${formattedDate} - ${r.time} - ${r.area.title}.`;
+    }
+    
+    const cleanPhone = r.phone.replace(/\D/g, "");
+    const finalPhone = cleanPhone.startsWith("90") ? cleanPhone : cleanPhone.startsWith("0") ? `90${cleanPhone.slice(1)}` : `90${cleanPhone}`;
+    
+    window.open(`https://wa.me/${finalPhone}?text=${encodeURIComponent(text)}`, "_blank");
+  }
+
   useEffect(() => {
     void loadAreas();
     void loadReservations();
@@ -332,8 +352,40 @@ export function AdminReservationsBrowser() {
                 <div className="text-white">{r.fullName}</div>
               </div>
               <div className="col-span-2">
-                <div className="text-xs text-white/50">Telefon</div>
-                <div className="text-white">{r.phone || "-"}</div>
+                <div className="text-xs text-white/50 mb-1">İletişim & Mesaj</div>
+                {r.phone ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <a href={`tel:${r.phone}`} className="text-sky-400 hover:text-sky-300 font-medium inline-flex items-center gap-1 py-1 px-2 rounded-lg bg-sky-500/10 border border-sky-500/20 text-xs">
+                      <Phone className="h-3 w-3" />
+                      Ara: {r.phone}
+                    </a>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => handleWhatsAppAction(r, 'confirm')}
+                        className="py-1 px-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20 text-[10px] font-bold"
+                        title="Onay Mesajı Gönder"
+                      >
+                        WA: Onay
+                      </button>
+                      <button
+                        onClick={() => handleWhatsAppAction(r, 'deposit')}
+                        className="py-1 px-1.5 rounded-lg bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 border border-amber-500/20 text-[10px] font-bold"
+                        title="Kapora Talebi Gönder"
+                      >
+                        WA: Kapora
+                      </button>
+                      <button
+                        onClick={() => handleWhatsAppAction(r, 'cancel')}
+                        className="py-1 px-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 text-[10px] font-bold"
+                        title="İptal Mesajı Gönder"
+                      >
+                        WA: İptal
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <span className="text-white/40">-</span>
+                )}
               </div>
               {r.note ? (
                 <div className="col-span-2">
@@ -387,7 +439,41 @@ export function AdminReservationsBrowser() {
                   <td className="px-4 py-3 whitespace-nowrap">{r.table.name}</td>
                   <td className="px-4 py-3 whitespace-nowrap">{r.partySize}</td>
                   <td className="px-4 py-3 whitespace-nowrap">{r.fullName}</td>
-                  <td className="px-4 py-3 whitespace-nowrap">{r.phone || "-"}</td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    {r.phone ? (
+                      <div className="flex flex-col gap-1">
+                        <a href={`tel:${r.phone}`} className="text-sky-400 hover:text-sky-300 font-medium inline-flex items-center gap-1 text-xs">
+                          <Phone className="h-3 w-3 shrink-0" />
+                          {r.phone}
+                        </a>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => handleWhatsAppAction(r, 'confirm')}
+                            className="px-1 py-0.5 rounded bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20 text-[9px] font-bold"
+                            title="Onay Mesajı"
+                          >
+                            Onay
+                          </button>
+                          <button
+                            onClick={() => handleWhatsAppAction(r, 'deposit')}
+                            className="px-1 py-0.5 rounded bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 border border-amber-500/20 text-[9px] font-bold"
+                            title="Kapora Talebi"
+                          >
+                            Kapora
+                          </button>
+                          <button
+                            onClick={() => handleWhatsAppAction(r, 'cancel')}
+                            className="px-1 py-0.5 rounded bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 text-[9px] font-bold"
+                            title="İptal Mesajı"
+                          >
+                            İptal
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="text-white/40">-</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     {r.tcknLast4 ? `****${r.tcknLast4}` : "-"}
                   </td>

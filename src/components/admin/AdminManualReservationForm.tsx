@@ -61,11 +61,11 @@ export function AdminManualReservationForm() {
   const [areas, setAreas] = useState<AreaDto[]>([]);
   const [areaId, setAreaId] = useState("");
   const [tables, setTables] = useState<TableOption[]>([]);
-  const [tableId, setTableId] = useState("");
+  const [tableId, setTableId] = useState("auto");
   const [loadingTables, setLoadingTables] = useState(false);
   const [closedReason, setClosedReason] = useState<string | null>(null);
 
-  const [breakfastPricePerPerson, setBreakfastPricePerPerson] = useState(350);
+  const [breakfastPricePerPerson, setBreakfastPricePerPerson] = useState(450);
   const [minPartySize, setMinPartySize] = useState(1);
   const [maxPartySize, setMaxPartySize] = useState(12);
 
@@ -112,7 +112,7 @@ export function AdminManualReservationForm() {
     if (!date || !time || !areaId) return;
     if (!isAllowedDate(date)) {
       setTables([]);
-      setTableId("");
+      setTableId("auto");
       setClosedReason("Tarih geçersiz.");
       return;
     }
@@ -126,14 +126,14 @@ export function AdminManualReservationForm() {
 
       if (!res.ok || !json.ok) {
         setTables([]);
-        setTableId("");
+        setTableId("auto");
         setClosedReason("error" in json ? json.error : "Uygun masa alınamadı.");
         return;
       }
 
       if ("closed" in json && json.closed) {
         setTables([]);
-        setTableId("");
+        setTableId("auto");
         setClosedReason(json.reason ?? "Kapalı gün.");
         return;
       }
@@ -141,10 +141,10 @@ export function AdminManualReservationForm() {
       const nextTables = "tables" in json ? json.tables : [];
       setClosedReason(null);
       setTables(nextTables);
-      setTableId((prev) => (nextTables.some((table) => table.id === prev) ? prev : nextTables[0]?.id ?? ""));
+      setTableId((prev) => (prev === "auto" ? "auto" : nextTables.some((table) => table.id === prev) ? prev : "auto"));
     } catch {
       setTables([]);
-      setTableId("");
+      setTableId("auto");
       setClosedReason("Uygun masa alınamadı.");
     } finally {
       setLoadingTables(false);
@@ -209,7 +209,8 @@ export function AdminManualReservationForm() {
     partySize >= minPartySize &&
     partySize <= maxPartySize &&
     !hasInvalidTckn &&
-    !closedReason;
+    !closedReason &&
+    (tableId === "auto" ? tables.length > 0 : true);
 
   return (
     <div className="space-y-6">
@@ -283,7 +284,7 @@ export function AdminManualReservationForm() {
             label="Masa"
             value={tableId}
             onChange={(e) => setTableId(e.target.value)}
-            disabled={loadingTables || !!closedReason || tables.length === 0}
+            disabled={loadingTables || !!closedReason}
             hint={
               closedReason
                 ? closedReason
@@ -292,15 +293,12 @@ export function AdminManualReservationForm() {
                   : `${tables.length} uygun masa`
             }
           >
-            {tables.length === 0 ? (
-              <option value="">Uygun masa yok</option>
-            ) : (
-              tables.map((table) => (
-                <option key={table.id} value={table.id}>
-                  {table.name}
-                </option>
-              ))
-            )}
+            <option value="auto">✨ Otomatik Masa Ata</option>
+            {tables.map((table) => (
+              <option key={table.id} value={table.id}>
+                {table.name}
+              </option>
+            ))}
           </Select>
         </div>
 

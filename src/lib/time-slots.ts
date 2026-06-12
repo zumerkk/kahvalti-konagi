@@ -6,8 +6,8 @@ export const RESERVATION_DURATION_MINUTES = 120 as const;
 
 export function serviceWindow(service: ServiceType) {
   return service === "BREAKFAST"
-    ? { openFrom: "08:00", openTo: "14:00" }
-    : { openFrom: "14:00", openTo: "23:00" };
+    ? { openFrom: "08:00", openTo: "15:00" }
+    : { openFrom: "15:00", openTo: "23:00" };
 }
 
 export function getTimeSlots(service: ServiceType) {

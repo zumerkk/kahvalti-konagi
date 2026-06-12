@@ -20,7 +20,7 @@ export async function GET() {
       return NextResponse.json({
         ok: true,
         settings: {
-          breakfastPricePerPerson: 350,
+          breakfastPricePerPerson: 450,
           onlineReservationsActive: true,
           maxPartySize: 4,
           minPartySize: 1,

@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #000000;
-  --foreground: #ffffff;
+  --background: #faf6ee;
+  --foreground: #3d3023;
 }
 
 @theme inline {
@@ -10,13 +10,6 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
@@ -30,16 +23,16 @@ html {
   scroll-behavior: smooth;
 }
 
-/* Dark mode select/option styling */
+/* Warm mode select/option styling */
 select,
 select option {
-  background-color: #18181b;
-  color: #e4e4e7;
+  background-color: #ffffff;
+  color: #3d3023;
 }
 
 select option:checked {
-  background-color: #f59e0b;
-  color: #000;
+  background-color: #f97316; /* warm orange */
+  color: #ffffff;
 }
 
 /* Hide scrollbar for category tabs */
@@ -50,3 +43,4 @@ select option:checked {
 .scrollbar-none::-webkit-scrollbar {
   display: none;
 }
+

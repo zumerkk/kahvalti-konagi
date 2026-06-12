@@ -38,39 +38,41 @@ export default async function MenuPage({ searchParams }: Props) {
   const categories = categoriesRaw.filter(c => c.products.length > 0);
 
   return (
-    <div className="flex min-h-screen flex-col bg-zinc-950 text-zinc-100 selection:bg-amber-500/30">
+    <div className="flex min-h-screen flex-col bg-background text-[#3d3023] selection:bg-orange-200/50">
       <Navbar />
 
       <main className="flex-1 pb-20">
         {/* Hero Section */}
-        <div className="relative overflow-hidden border-b border-white/5 bg-gradient-to-b from-zinc-900 to-zinc-950 px-5 pb-10 pt-16">
-          <div className="absolute inset-0 bg-[radial-gradient(900px_circle_at_50%_0%,rgba(245,158,11,0.1),transparent_50%)]" />
+        <div className="relative overflow-hidden border-b border-[#e6dfd5]/40 bg-gradient-to-b from-orange-50/60 to-white px-5 pb-12 pt-16">
+          <div className="absolute -left-20 top-0 h-48 w-48 rounded-full bg-orange-400/5 blur-3xl pointer-events-none" />
+          <div className="absolute right-0 bottom-0 h-48 w-48 rounded-full bg-yellow-400/5 blur-3xl pointer-events-none" />
+          
           <div className="relative mx-auto max-w-5xl text-center">
             {table ? (
-              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-1.5 text-sm font-medium text-amber-400">
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-orange-200/80 bg-orange-50 px-4 py-1.5 text-sm font-bold text-orange-700 shadow-sm animate-pulse">
                 <Utensils className="h-4 w-4" />
-                Hoş Geldiniz, {table}
+                Masa {table} Hoş Geldiniz!
               </div>
             ) : null}
-            <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
-              Dijital <span className="bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent">Menü</span>
+            <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">
+              Nefis <span className="bg-gradient-to-r from-orange-600 to-amber-500 bg-clip-text text-transparent">Lezzet Menümüz</span>
             </h1>
-            <p className="mx-auto mt-4 max-w-xl text-zinc-400">
-              Lezzetlerimizi keşfedin ve siparişinizi garsonunuza iletin. Afiyet olsun!
+            <p className="mx-auto mt-4 max-w-xl text-[#7c6f62] font-medium leading-relaxed">
+              Konağımızın özenle hazırlanan zengin açık büfe kahvaltı çeşitlerini, 3. nesil özel kahvelerini ve taze İtalyan tatlılarını inceleyin. Siparişlerinizi ekibimize iletebilirsiniz!
             </p>
           </div>
         </div>
 
         {/* Category Navigation (Sticky) */}
-        <div className="sticky top-[64px] z-30 border-b border-white/5 bg-zinc-950/80 px-5 backdrop-blur-xl">
+        <div className="sticky top-[64px] z-30 border-b border-[#e6dfd5]/40 bg-white/95 px-5 backdrop-blur-xl">
           <div className="mx-auto flex max-w-5xl gap-3 overflow-x-auto py-4 scrollbar-none">
             {categories.map((c) => (
               <a
                 key={c.id}
                 href={`#cat-${c.id}`}
-                className="flex shrink-0 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-zinc-300 transition-all hover:border-amber-500/50 hover:bg-amber-500/10 hover:text-amber-400 active:scale-95"
+                className="flex shrink-0 items-center gap-2 rounded-full border border-[#e6dfd5] bg-white px-4.5 py-2 text-sm font-bold text-[#5c4d3c] transition-all hover:border-orange-500 hover:bg-orange-50 hover:text-orange-700 active:scale-95 shadow-sm"
               >
-                <Utensils className="h-4 w-4" />
+                <span className="text-orange-500">🍽️</span>
                 {c.name}
               </a>
             ))}
@@ -84,42 +86,43 @@ export default async function MenuPage({ searchParams }: Props) {
               <section key={c.id} id={`cat-${c.id}`} className="scroll-mt-36">
                 {/* Category Header */}
                 <div className="mb-6 flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-900 shadow-inner shadow-white/5">
-                    <Utensils className="h-5 w-5 text-amber-500" />
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-50 border border-orange-100 shadow-sm text-orange-600 text-lg">
+                    🍳
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold tracking-tight text-white">{c.name}</h2>
-                    {c.description && <p className="text-sm text-zinc-500">{c.description}</p>}
+                    <h2 className="text-2xl font-black tracking-tight text-[#3d3023]">{c.name}</h2>
+                    {c.description && <p className="text-sm text-[#7c6f62] mt-0.5 font-medium">{c.description}</p>}
                   </div>
                 </div>
 
                 {/* Products Grid */}
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
                   {c.products.map((p) => (
                     <div
                       key={p.id}
-                      className="group flex h-full flex-col overflow-hidden rounded-2xl border border-white/5 bg-white/[0.02] p-5 transition-all duration-300 hover:border-amber-500/30 hover:bg-white/[0.04] hover:shadow-2xl hover:shadow-amber-500/5"
+                      className="group flex h-full flex-col overflow-hidden rounded-[2rem] border border-[#e6dfd5] bg-white p-6 transition-all duration-300 hover:border-orange-300 hover:shadow-lg hover:shadow-orange-950/5 relative"
                     >
                       <div className="flex flex-1 flex-col">
                         <div className="flex items-start justify-between gap-4">
-                          <h3 className="text-lg font-semibold text-zinc-100 group-hover:text-amber-400 transition-colors">
+                          <h3 className="text-base font-extrabold text-[#3d3023] group-hover:text-orange-600 transition-colors leading-snug">
                             {p.name}
                           </h3>
                           {p.stockQty <= 0 && (
-                            <span className="shrink-0 rounded-full bg-red-500/10 px-2 py-0.5 text-[10px] font-bold tracking-wider text-red-500 uppercase">
+                            <span className="shrink-0 rounded-lg bg-red-50 border border-red-200 px-2 py-0.5 text-[9px] font-extrabold tracking-wider text-red-600 uppercase">
                               Tükendi
                             </span>
                           )}
                         </div>
                         {p.description && (
-                          <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+                          <p className="mt-2 text-xs leading-relaxed text-[#7c6f62] font-medium flex-1">
                             {p.description}
                           </p>
                         )}
-                        <div className="mt-auto pt-4 flex items-center justify-between">
-                          <span className="text-xl font-bold text-amber-500">
+                        <div className="mt-5 pt-4 border-t border-dashed border-[#faf6ee] flex items-center justify-between">
+                          <span className="text-lg font-black text-orange-600">
                             {p.priceCents ? `${(p.priceCents / 100).toLocaleString("tr-TR")} ₺` : '-'}
                           </span>
+                          <span className="text-[10px] text-green-700 bg-green-50 border border-green-200/40 px-2 py-0.5 rounded-md font-bold">Taze & Sıcak</span>
                         </div>
                       </div>
                     </div>
@@ -129,13 +132,13 @@ export default async function MenuPage({ searchParams }: Props) {
             ))}
           </div>
 
-          <div className="mt-20 border-t border-white/5 pt-10 text-center">
-            <div className="inline-flex items-center justify-center gap-2 rounded-full border border-white/10 bg-zinc-900 px-5 py-2 text-sm text-zinc-400">
-              <Info className="h-4 w-4" />
-              Fiyatlarımıza KDV dahildir.
+          <div className="mt-20 border-t border-[#e6dfd5]/60 pt-12 text-center">
+            <div className="inline-flex items-center justify-center gap-2 rounded-full border border-orange-200 bg-orange-50 px-6 py-2.5 text-sm text-[#7c6f62] font-semibold">
+              <Info className="h-4 w-4 text-orange-600" />
+              Fiyatlarımıza KDV dahildir. Kahvaltımız sınırsız açık büfedir.
             </div>
-            <div className="mt-10 mb-5 flex justify-center opacity-30">
-              <Image src="/media/logo.png" alt="Logo" width={60} height={60} className="grayscale" />
+            <div className="mt-12 mb-5 flex justify-center opacity-40">
+              <Image src="/media/logo.png" alt="Kahvaltı Konağı Logo" width={70} height={70} className="object-contain" />
             </div>
           </div>
         </div>

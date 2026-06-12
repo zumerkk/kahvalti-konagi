@@ -11,6 +11,11 @@ vi.mock("@/lib/prisma", () => ({
 }));
 
 vi.mock("@/lib/audit-logger", () => ({
+  logger: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  },
   logAudit: vi.fn(),
 }));
 

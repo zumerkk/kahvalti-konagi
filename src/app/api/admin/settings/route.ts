@@ -13,7 +13,7 @@ async function ensureSettings() {
   return prisma.settings.upsert({
     where: { id: "singleton" },
     update: {},
-    create: { id: "singleton", breakfastPricePerPerson: 350 },
+    create: { id: "singleton", breakfastPricePerPerson: 450 },
     select: { breakfastPricePerPerson: true },
   });
 }

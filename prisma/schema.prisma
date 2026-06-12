@@ -264,14 +264,14 @@ model Settings {
   onlineReservationsActive Boolean @default(true)
   
   reservationStartTime String   @default("08:00")
-  reservationEndTime   String   @default("14:00")
-  cafeStartTime        String   @default("14:00")
+  reservationEndTime   String   @default("15:00")
+  cafeStartTime        String   @default("15:00")
   cafeEndTime          String   @default("23:00")
   
   slotMinutes          Int      @default(30)
   minPartySize         Int      @default(1)
   maxPartySize         Int      @default(4)
-  breakfastPricePerPerson Int   @default(350)
+  breakfastPricePerPerson Int   @default(450)
   
   depositEnabled       Boolean  @default(false)
   depositAmount        Int      @default(0)

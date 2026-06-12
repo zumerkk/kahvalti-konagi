@@ -26,7 +26,7 @@ const AdminReservationCreateSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   time: z.string().regex(/^\d{2}:\d{2}$/),
   areaId: z.string().min(1),
-  tableId: z.string().min(1),
+  tableId: z.string().optional().or(z.literal("auto")).or(z.literal("")),
   fullName: z.string().min(2).max(120),
   phone: z.string().max(20).optional().or(z.literal("")),
   tckn: z.string().regex(/^\d{11}$/).optional().or(z.literal("")),
@@ -76,25 +76,14 @@ export async function POST(req: Request) {
   const dbDate = toDbDate(date);
 
   try {
-    const [settings, closedDay, table] = await Promise.all([
+    const [settings, closedDay] = await Promise.all([
       prisma.settings.findUnique({ where: { id: "singleton" } }),
       prisma.closedDate.findUnique({ where: { date: dbDate } }),
-      prisma.table.findFirst({
-        where: { id: tableId, areaId, isActive: true },
-        select: { id: true, name: true },
-      }),
     ]);
 
     if (closedDay) {
       return NextResponse.json(
         { ok: false, error: closedDay.reason || "Seçilen gün kapalı." },
-        { status: 400 },
-      );
-    }
-
-    if (!table) {
-      return NextResponse.json(
-        { ok: false, error: "Seçilen masa bu alanda bulunamadı veya pasif." },
         { status: 400 },
       );
     }
@@ -108,28 +97,86 @@ export async function POST(req: Request) {
       );
     }
 
-    const overlappingReservation = await prisma.reservation.findFirst({
-      where: {
-        serviceType,
-        date: dbDate,
-        tableId,
-        status: { in: [...ACTIVE_RESERVATION_STATUSES] },
-      },
-      select: { time: true },
-    });
+    let resolvedTableId = tableId;
 
-    if (overlappingReservation && isTimeOverlap(overlappingReservation.time, time)) {
-      return NextResponse.json(
-        { ok: false, error: "Bu masa seçilen saat aralığında dolu. Başka saat veya masa seçin." },
-        { status: 409 },
-      );
+    if (!resolvedTableId || resolvedTableId === "auto") {
+      // 1. Get all active tables in that area
+      const allTables = await prisma.table.findMany({
+        where: { areaId, isActive: true },
+        select: { id: true, name: true },
+        orderBy: { name: "asc" }
+      });
+
+      if (allTables.length === 0) {
+        return NextResponse.json(
+          { ok: false, error: "Seçtiğiniz alanda aktif bir masa bulunmamaktadır." },
+          { status: 400 },
+        );
+      }
+
+      // 2. Find all tables with overlapping active reservations on that date
+      const overlappingReservations = await prisma.reservation.findMany({
+        where: {
+          serviceType,
+          date: dbDate,
+          areaId,
+          status: { in: [...ACTIVE_RESERVATION_STATUSES] }
+        },
+        select: { tableId: true, time: true }
+      });
+
+      // 3. Filter out tables that overlap with the requested time
+      const bookedTableIds = overlappingReservations
+        .filter(res => isTimeOverlap(res.time, time))
+        .map(res => res.tableId);
+
+      // 4. Find the first table that is not booked
+      const availableTable = allTables.find(t => !bookedTableIds.includes(t.id));
+      if (!availableTable) {
+        return NextResponse.json(
+          { ok: false, error: "Seçtiğiniz tarih ve saatte bu alanda boş masamız kalmamıştır. Başka saat veya alan seçin." },
+          { status: 409 },
+        );
+      }
+
+      resolvedTableId = availableTable.id;
+    } else {
+      // Strict check for selected table
+      const table = await prisma.table.findFirst({
+        where: { id: resolvedTableId, areaId, isActive: true },
+        select: { id: true, name: true },
+      });
+
+      if (!table) {
+        return NextResponse.json(
+          { ok: false, error: "Seçilen masa bu alanda bulunamadı veya pasif." },
+          { status: 400 },
+        );
+      }
+
+      const overlappingReservation = await prisma.reservation.findFirst({
+        where: {
+          serviceType,
+          date: dbDate,
+          tableId: resolvedTableId,
+          status: { in: [...ACTIVE_RESERVATION_STATUSES] },
+        },
+        select: { time: true },
+      });
+
+      if (overlappingReservation && isTimeOverlap(overlappingReservation.time, time)) {
+        return NextResponse.json(
+          { ok: false, error: "Bu masa seçilen saat aralığında dolu. Başka saat veya masa seçin." },
+          { status: 409 },
+        );
+      }
     }
 
     const cleanedTckn = tckn?.trim() || null;
     const tcknEncrypted = cleanedTckn ? encryptPII(cleanedTckn) : null;
     const tcknLast4 = cleanedTckn ? cleanedTckn.slice(-4) : null;
     const totalAmount =
-      serviceType === "BREAKFAST" ? (settings?.breakfastPricePerPerson ?? 350) * partySize : null;
+      serviceType === "BREAKFAST" ? (settings?.breakfastPricePerPerson ?? 450) * partySize : null;
 
     const reservation = await prisma.reservation.create({
       data: {
@@ -138,7 +185,7 @@ export async function POST(req: Request) {
         date: dbDate,
         time,
         areaId,
-        tableId,
+        tableId: resolvedTableId,
         fullName: cleanedFullName,
         phone: cleanedPhone,
         tcknEncrypted,

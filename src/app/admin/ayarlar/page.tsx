@@ -8,13 +8,16 @@ export default async function SettingsPage() {
   const settings = await prisma.settings.findUnique({ where: { id: "singleton" } }) || {
     businessName: "Kahvaltı Konağı", phone: "", whatsapp: "", address: "", 
     reservationsEnabled: true, onlineReservationsActive: true,
-    reservationStartTime: "08:00", reservationEndTime: "14:00", cafeStartTime: "14:00", cafeEndTime: "23:00",
-    slotMinutes: 30, minPartySize: 1, maxPartySize: 4, breakfastPricePerPerson: 350,
+    reservationStartTime: "08:00", reservationEndTime: "15:00", cafeStartTime: "15:00", cafeEndTime: "23:00",
+    slotMinutes: 30, minPartySize: 1, maxPartySize: 4, breakfastPricePerPerson: 450,
     depositEnabled: false, depositAmount: 0, smsEnabled: false, emailEnabled: false
   };
 
   async function updateSettings(formData: FormData) {
     "use server";
+    
+    const depositAmountLira = Number(formData.get("depositAmount") || 0);
+    const depositAmountKurus = Math.round(depositAmountLira * 100);
     
     await prisma.settings.upsert({
       where: { id: "singleton" },
@@ -34,7 +37,7 @@ export default async function SettingsPage() {
         maxPartySize: Number(formData.get("maxPartySize")),
         breakfastPricePerPerson: Number(formData.get("breakfastPricePerPerson")),
         depositEnabled: formData.get("depositEnabled") === "on",
-        depositAmount: Number(formData.get("depositAmount")),
+        depositAmount: depositAmountKurus,
         smsEnabled: formData.get("smsEnabled") === "on",
         emailEnabled: formData.get("emailEnabled") === "on",
       },
@@ -55,7 +58,7 @@ export default async function SettingsPage() {
         maxPartySize: Number(formData.get("maxPartySize")),
         breakfastPricePerPerson: Number(formData.get("breakfastPricePerPerson")),
         depositEnabled: formData.get("depositEnabled") === "on",
-        depositAmount: Number(formData.get("depositAmount")),
+        depositAmount: depositAmountKurus,
         smsEnabled: formData.get("smsEnabled") === "on",
         emailEnabled: formData.get("emailEnabled") === "on",
       }
@@ -96,7 +99,7 @@ export default async function SettingsPage() {
         <h2 className="text-lg font-semibold border-b pb-2 mt-6">Ödeme & Bildirim</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div><label className="flex items-center gap-2 text-sm mb-2"><input type="checkbox" name="depositEnabled" defaultChecked={settings.depositEnabled} /> Kapora İste</label></div>
-          <div><label className="block text-sm mb-1">Kapora Tutarı (Kuruş)</label><input type="number" name="depositAmount" defaultValue={settings.depositAmount} className="w-full p-2 border rounded" /></div>
+          <div><label className="block text-sm mb-1">Kapora Tutarı (₺)</label><input type="number" step="0.01" name="depositAmount" defaultValue={settings.depositAmount / 100} className="w-full p-2 border rounded" /></div>
           <div className="md:col-span-1"></div>
           <div><label className="flex items-center gap-2 text-sm"><input type="checkbox" name="smsEnabled" defaultChecked={settings.smsEnabled} /> SMS Gönder</label></div>
           <div><label className="flex items-center gap-2 text-sm"><input type="checkbox" name="emailEnabled" defaultChecked={settings.emailEnabled} /> E-Posta Gönder</label></div>

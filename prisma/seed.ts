@@ -22,14 +22,20 @@ async function main() {
 
   await prisma.settings.upsert({
     where: { id: "singleton" },
-    update: {},
+    update: {
+      reservationEndTime: "15:00",
+      cafeStartTime: "15:00",
+      breakfastPricePerPerson: 450,
+    },
     create: {
       id: "singleton",
       reservationsEnabled: true,
       reservationStartTime: "08:00",
-      reservationEndTime: "14:00",
+      reservationEndTime: "15:00",
+      cafeStartTime: "15:00",
       slotMinutes: 30,
       maxPartySize: 12,
+      breakfastPricePerPerson: 450,
     },
   });
 

@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     template: "%s | Kahvaltı Konağı",
   },
   description:
-    "Kırıkkale'de açık büfe kahvaltı, taze kahve ve cafe lezzetleri arayanların ilk tercihi: Kahvaltı Konağı. Hafta sonu 08:00-14:00 kahvaltı, 14:00 sonrası kafe keyfi için online rezervasyon yapın.",
+    "Kırıkkale'de açık büfe kahvaltı, taze kahve ve cafe lezzetleri arayanların ilk tercihi: Kahvaltı Konağı. Hafta sonu 08:00-15:00 kahvaltı, 15:00 sonrası kafe keyfi için online rezervasyon yapın.",
   keywords: [
     "Kırıkkale kahvaltı",
     "Kırıkkale cafe",
@@ -97,9 +97,9 @@ export default function RootLayout({
           </>
         )}
       </head>
-      <body className="min-h-full flex flex-col bg-black text-white">
+      <body className="min-h-full flex flex-col bg-background text-foreground">
         {children}
-        <Toaster theme="dark" position="bottom-right" />
+        <Toaster theme="light" position="bottom-right" />
       </body>
     </html>
   );

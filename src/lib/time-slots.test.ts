@@ -4,18 +4,18 @@ import { getTimeSlots, isAllowedTime, isTimeOverlap, SLOT_MINUTES, RESERVATION_D
 import { isAllowedDate } from "@/lib/reservation-rules";
 
 describe("time slots", () => {
-  it("breakfast slots include 08:00 and exclude 14:30", () => {
+  it("breakfast slots include 08:00 and exclude 15:30", () => {
     const slots = getTimeSlots("BREAKFAST");
     expect(slots[0]).toBe("08:00");
-    expect(slots[slots.length - 1]).toBe("13:30");
-    expect(isAllowedTime("BREAKFAST", "13:30")).toBe(true);
-    expect(isAllowedTime("BREAKFAST", "14:30")).toBe(false);
+    expect(slots[slots.length - 1]).toBe("14:30");
+    expect(isAllowedTime("BREAKFAST", "14:30")).toBe(true);
+    expect(isAllowedTime("BREAKFAST", "15:30")).toBe(false);
     expect(SLOT_MINUTES).toBe(30);
   });
 
-  it("cafe slots include 14:00 and exclude 23:30", () => {
+  it("cafe slots include 15:00 and exclude 23:30", () => {
     const slots = getTimeSlots("CAFE");
-    expect(slots[0]).toBe("14:00");
+    expect(slots[0]).toBe("15:00");
     expect(slots[slots.length - 1]).toBe("22:30");
     expect(isAllowedTime("CAFE", "22:30")).toBe(true);
     expect(isAllowedTime("CAFE", "23:30")).toBe(false);

@@ -14,7 +14,7 @@ const ReservationCreateSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   time: z.string().regex(/^\d{2}:\d{2}$/),
   areaId: z.string().min(1),
-  tableId: z.string().min(1),
+  tableId: z.string().optional().or(z.literal("auto")).or(z.literal("")),
   fullName: z.string().min(2).max(120),
   phone: z.string().min(8).max(20),
   tckn: z.string().regex(/^\d{11}$/),
@@ -90,38 +90,93 @@ export async function POST(req: Request) {
 
   const { isTimeOverlap } = await import("@/lib/time-slots");
 
-  // Çakışma Kontrolü (Race condition engellemek için transaction veya strict check)
-  const overlappingReservation = await prisma.reservation.findFirst({
-    where: {
-      serviceType,
-      date: dbDate,
-      tableId,
-      status: {
-        in: [
-          "PENDING",
-          "BOOKED",
-          "CONFIRMED",
-          "ARRIVED",
-          "SEATED",
-          "DEPOSIT_PENDING",
-          "DEPOSIT_RECEIVED"
-        ]
-      }
-    },
-    select: { time: true }
-  });
+  let resolvedTableId = tableId;
 
-  if (overlappingReservation && isTimeOverlap(overlappingReservation.time, time)) {
-    logger.warn("Rezervasyon çakışması engellendi", {
-      requestedTime: time,
-      existingTime: overlappingReservation.time,
-      tableId,
-      date: dbDate
+  if (!resolvedTableId || resolvedTableId === "auto") {
+    // 1. Get all active tables in that area
+    const allTables = await prisma.table.findMany({
+      where: { areaId, isActive: true },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" }
     });
-    return NextResponse.json(
-      { ok: false, error: "Bu masa aynı saatte başkası tarafından rezerve edilmiş. Lütfen başka bir saat veya masa seçin." },
-      { status: 409 },
-    );
+
+    if (allTables.length === 0) {
+      return NextResponse.json(
+        { ok: false, error: "Seçtiğiniz alanda aktif bir masa bulunmamaktadır." },
+        { status: 400 },
+      );
+    }
+
+    // 2. Find all tables with overlapping active reservations on that date
+    const overlappingReservations = await prisma.reservation.findMany({
+      where: {
+        serviceType,
+        date: dbDate,
+        areaId,
+        status: {
+          in: [
+            "PENDING",
+            "BOOKED",
+            "CONFIRMED",
+            "ARRIVED",
+            "SEATED",
+            "DEPOSIT_PENDING",
+            "DEPOSIT_RECEIVED"
+          ]
+        }
+      },
+      select: { tableId: true, time: true }
+    });
+
+    // 3. Filter out tables that overlap with the requested time
+    const bookedTableIds = overlappingReservations
+      .filter(res => isTimeOverlap(res.time, time))
+      .map(res => res.tableId);
+
+    // 4. Find the first table that is not booked
+    const availableTable = allTables.find(t => !bookedTableIds.includes(t.id));
+    if (!availableTable) {
+      return NextResponse.json(
+        { ok: false, error: "Seçtiğiniz tarih ve saatte bu alanda boş masamız kalmamıştır. Lütfen başka bir saat veya tarih seçin." },
+        { status: 409 },
+      );
+    }
+
+    resolvedTableId = availableTable.id;
+  } else {
+    // strict check for non-overlapping
+    const overlappingReservation = await prisma.reservation.findFirst({
+      where: {
+        serviceType,
+        date: dbDate,
+        tableId: resolvedTableId,
+        status: {
+          in: [
+            "PENDING",
+            "BOOKED",
+            "CONFIRMED",
+            "ARRIVED",
+            "SEATED",
+            "DEPOSIT_PENDING",
+            "DEPOSIT_RECEIVED"
+          ]
+        }
+      },
+      select: { time: true }
+    });
+
+    if (overlappingReservation && isTimeOverlap(overlappingReservation.time, time)) {
+      logger.warn("Rezervasyon çakışması engellendi", {
+        requestedTime: time,
+        existingTime: overlappingReservation.time,
+        tableId: resolvedTableId,
+        date: dbDate
+      });
+      return NextResponse.json(
+        { ok: false, error: "Bu masa aynı saatte başkası tarafından rezerve edilmiş. Lütfen başka bir saat veya masa seçin." },
+        { status: 409 },
+      );
+    }
   }
 
   // TCKN Şifreleme
@@ -129,7 +184,7 @@ export async function POST(req: Request) {
   const tcknLast4 = tckn.slice(-4);
   
   // Fiyat hesaplama
-  const totalAmount = serviceType === "BREAKFAST" ? (settings?.breakfastPricePerPerson || 350) * partySize : null;
+  const totalAmount = serviceType === "BREAKFAST" ? (settings?.breakfastPricePerPerson || 450) * partySize : null;
 
   try {
     // Veritabanına kaydet - Race condition P2002 ile engellenir
@@ -140,7 +195,7 @@ export async function POST(req: Request) {
         date: dbDate,
         time,
         areaId,
-        tableId,
+        tableId: resolvedTableId,
         fullName,
         phone,
         tcknEncrypted,

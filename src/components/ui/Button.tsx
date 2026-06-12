@@ -7,13 +7,13 @@ type ButtonProps = ComponentProps<"button"> & {
 
 export function Button({ className = "", variant = "primary", ...props }: ButtonProps) {
   const base =
-    "inline-flex items-center justify-center rounded-full px-5 py-3 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-amber-500/50";
+    "inline-flex items-center justify-center rounded-full px-5 py-3 text-sm font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-orange-500/50 active:scale-95 cursor-pointer";
   const styles =
     variant === "primary"
-      ? "bg-amber-500 text-black hover:bg-amber-400"
+      ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white hover:from-orange-600 hover:to-amber-600 shadow-md shadow-orange-500/15"
       : variant === "secondary"
-        ? "bg-white/10 text-white hover:bg-white/15"
-        : "bg-transparent text-white hover:bg-white/10";
+        ? "bg-orange-50/80 border border-orange-200/60 text-orange-950 hover:bg-orange-100 hover:text-orange-900 shadow-sm"
+        : "bg-transparent text-orange-950 hover:bg-orange-50/50 hover:text-orange-900";
   return <button className={`${base} ${styles} ${className}`} {...props} />;
 }
 
@@ -30,13 +30,13 @@ export function ButtonLink({
   ...props
 }: ButtonLinkProps) {
   const base =
-    "inline-flex items-center justify-center rounded-full px-5 py-3 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-amber-500/50";
+    "inline-flex items-center justify-center rounded-full px-5 py-3 text-sm font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-orange-500/50 active:scale-95 cursor-pointer";
   const styles =
     variant === "primary"
-      ? "bg-amber-500 text-black hover:bg-amber-400"
+      ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white hover:from-orange-600 hover:to-amber-600 shadow-md shadow-orange-500/15"
       : variant === "secondary"
-        ? "bg-white/10 text-white hover:bg-white/15"
-        : "bg-transparent text-white hover:bg-white/10";
+        ? "bg-orange-50/80 border border-orange-200/60 text-orange-950 hover:bg-orange-100 hover:text-orange-900 shadow-sm"
+        : "bg-transparent text-orange-950 hover:bg-orange-50/50 hover:text-orange-900";
   return (
     <Link className={`${base} ${styles} ${className}`} {...props}>
       {children}
