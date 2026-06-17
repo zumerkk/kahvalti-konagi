@@ -330,22 +330,37 @@ export default function Home() {
             </div>
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-              <div className="relative aspect-[4/3] overflow-hidden rounded-3xl border border-orange-200/60 bg-white shadow-md md:col-span-2 p-2">
+              {/* Video Card */}
+              <div className="relative aspect-[4/3] overflow-hidden rounded-3xl border border-orange-200/60 bg-white shadow-md p-2">
                 <div className="relative h-full w-full overflow-hidden rounded-2xl">
                   <video
                     className="h-full w-full object-cover"
-                    src="/media/tanitim.mp4"
+                    src="/media/cilek.mp4"
                     controls
                     playsInline
                     preload="metadata"
                   />
                 </div>
               </div>
+              {/* Portrait Image Card */}
               <div className="relative aspect-[4/3] overflow-hidden rounded-3xl border border-orange-200/60 bg-white shadow-md p-2">
                 <div className="relative h-full w-full overflow-hidden rounded-2xl">
                   <Image 
-                    src="/media/mekan.jpeg" 
-                    alt="Kahvaltı Konağı Kırıkkale Şık İç Mekan" 
+                    src="/media/galeri_kahve.jpg" 
+                    alt="Kahvaltı Konağı Cafe & Tatlı Keyfi" 
+                    fill 
+                    sizes="(max-width: 768px) 100vw, 33vw" 
+                    loading="lazy" 
+                    className="object-cover transition-transform duration-500 hover:scale-105" 
+                  />
+                </div>
+              </div>
+              {/* Landscape Image Card */}
+              <div className="relative aspect-[4/3] overflow-hidden rounded-3xl border border-orange-200/60 bg-white shadow-md p-2">
+                <div className="relative h-full w-full overflow-hidden rounded-2xl">
+                  <Image 
+                    src="/media/galeri_simit.png" 
+                    alt="Kahvaltı Konağı Zengin Açık Büfe Lezzetleri" 
                     fill 
                     sizes="(max-width: 768px) 100vw, 33vw" 
                     loading="lazy" 
