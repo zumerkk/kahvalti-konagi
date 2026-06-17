@@ -31,7 +31,7 @@ MVP2 (sonraki etap, bu dokümanın dışında): **Hızlı satış / POS** ve sto
 ## 3) Kapsam (MVP1)
 ### 3.1 Kullanıcı (müşteri) tarafı
 **Web sitesi (Clean White):**
-- Hero: “350₺ kişi başı sınırsız açık büfe kahvaltı” + “14:00 sonrası cafe & bistro”
+- Hero: “450₺ kişi başı sınırsız açık büfe kahvaltı” + “14:00 sonrası cafe & bistro”
 - Galeri: foto + video
 - İletişim: adres, telefon (tıkla-ara), yol tarifi (Google Maps)
 
@@ -69,7 +69,7 @@ MVP2 (sonraki etap, bu dokümanın dışında): **Hızlı satış / POS** ve sto
   - Ürün CRUD: ad, açıklama, kategori, fiyat, stokAdet, aktif/pasif, foto (opsiyonel)
   - Stok güncelleme manuel
 - Ayarlar:
-  - Kahvaltı kişi başı fiyat: varsayılan **350₺**, admin tarafından değiştirilebilir
+  - Kahvaltı kişi başı fiyat: varsayılan **450₺**, admin tarafından değiştirilebilir
 
 ### 3.3 Kapsam dışı (MVP1)
 - POS/hızlı satış ekranı
@@ -164,7 +164,7 @@ Kısıt:
 
 ### 6.6 Settings
 - `id` (singleton)
-- `breakfastPricePerPerson` (default 350)
+- `breakfastPricePerPerson` (default 450)
 - ileride: çalışma saatleri, slot süresi, min harcama vb.
 
 ## 7) API tasarımı (Önerilen)
@@ -206,7 +206,7 @@ Mevcut endpoint yaklaşımı korunur (Next.js route handlers).
 
 ## 10) Kabul kriterleri (Acceptance Criteria)
 ### Site
-- Ana sayfada 350₺ açık büfe + 14:00 sonrası cafe/bistro net anlatılır
+- Ana sayfada 450₺ açık büfe + 14:00 sonrası cafe/bistro net anlatılır
 - Menü kategori bazlı listelenir; ürün fiyatları görünür; ürün pasif ise görünmez
 
 ### Rezervasyon

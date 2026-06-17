@@ -79,7 +79,10 @@ export function ReservationForm() {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [tckn, setTckn] = useState("");
-  const [partySize, setPartySize] = useState(2);
+  const [adultCount, setAdultCount] = useState(2);
+  const [childCount, setChildCount] = useState(0);
+  const [babyCount, setBabyCount] = useState(0);
+  const partySize = adultCount + childCount + babyCount;
   const [note, setNote] = useState("");
   const [rememberMe, setRememberMe] = useState(true);
 
@@ -224,6 +227,9 @@ export function ReservationForm() {
           phone,
           tckn,
           partySize,
+          adultCount,
+          childCount,
+          babyCount,
           note,
         }),
       });
@@ -252,13 +258,14 @@ export function ReservationForm() {
     const serviceName = serviceType === "BREAKFAST" ? "Açık Büfe Kahvaltı" : "Kafe / Bistro";
     const areaName = areaCode === "CAMEKAN" ? "Camekan Bölümü" : "İç Salon";
     const formattedDate = date ? new Date(date).toLocaleDateString("tr-TR") : "(Tarih Seçilmedi)";
+    const breakdownStr = `${adultCount} Yetişkin${childCount > 0 ? `, ${childCount} Çocuk (4-7 Yaş)` : ""}${babyCount > 0 ? `, ${babyCount} Bebek (0-3 Yaş)` : ""}`;
     
     const text = `Merhaba, Kahvaltı Konağı için online rezervasyon yaptırmak istiyorum:\n\n` +
                  `🍽️ Hizmet: ${serviceName}\n` +
                  `📍 Bölüm: ${areaName}\n` +
                  `📅 Tarih: ${formattedDate}\n` +
                  `⏰ Saat: ${time}\n` +
-                 `👥 Kişi: ${partySize} Kişi\n` +
+                 `👥 Kişi: ${partySize} Kişi (${breakdownStr})\n` +
                  `${fullName ? `👤 İsim: ${fullName}\n` : ""}` +
                  `${phone ? `📞 Telefon: ${phone}\n` : ""}` +
                  `\nMasamızı rezerve edebilir miyiz? Teşekkürler!`;
@@ -266,13 +273,14 @@ export function ReservationForm() {
     window.open(`https://wa.me/905468983014?text=${encodeURIComponent(text)}`, "_blank");
   };
 
-  const breakfastTotal =
-    serviceType === "BREAKFAST" && breakfastPricePerPerson != null
-      ? breakfastPricePerPerson * partySize
-      : null;
+  const breakfastTotal = useMemo(() => {
+    if (serviceType !== "BREAKFAST") return null;
+    const pricePerPerson = breakfastPricePerPerson ?? 450;
+    return adultCount * pricePerPerson + childCount * 200;
+  }, [serviceType, breakfastPricePerPerson, adultCount, childCount]);
 
   // Form validations for each step
-  const canNextStep2 = date && time && tables.length > 0 && !closedReason && partySize >= minPartySize && partySize <= maxPartySize;
+  const canNextStep2 = date && time && tables.length > 0 && !closedReason && partySize >= minPartySize && partySize <= maxPartySize && adultCount >= 1;
   const canSubmit = fullName.trim().length >= 2 && phone.trim().length >= 8 && tckn.length === 11;
 
   return (
@@ -437,35 +445,109 @@ export function ReservationForm() {
               <span className="text-xs text-[#7c6f62] block">Hafta sonları için erken rezervasyon önerilir.</span>
             </div>
 
-            {/* Guest Count with Custom Counter */}
-            <div className="space-y-2">
+            {/* Guest Count Breakdown */}
+            <div className="space-y-3">
               <label className="flex items-center gap-2 text-sm font-bold text-[#4a3e31]">
                 <Users className="h-4 w-4 text-orange-500" />
                 Kişi Sayısı
               </label>
-              <div className="flex items-center justify-between border border-[#e6dfd5] bg-orange-50/30 rounded-xl p-2.5">
-                <button
-                  type="button"
-                  onClick={() => setPartySize(prev => Math.max(minPartySize, prev - 1))}
-                  className="h-10 w-10 flex items-center justify-center rounded-lg bg-white border border-[#e6dfd5] text-[#3d3023] font-bold hover:bg-orange-50 hover:text-orange-600 transition cursor-pointer"
-                >
-                  -
-                </button>
-                <div className="text-center">
-                  <span className="text-lg font-extrabold text-[#3d3023] block">{partySize} Kişi</span>
-                  {serviceType === "BREAKFAST" && breakfastTotal != null && (
-                    <span className="text-xs font-bold text-orange-600">Tutar: {breakfastTotal}₺</span>
-                  )}
+              
+              <div className="space-y-3 border border-[#e6dfd5] bg-orange-50/10 p-4 rounded-2xl">
+                {/* Adults */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-sm font-bold text-[#3d3023] block">Yetişkin / 8+ Yaş</span>
+                    <span className="text-xs text-[#7c6f62]">{breakfastPricePerPerson ?? 450}₺</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setAdultCount(prev => Math.max(1, prev - 1))}
+                      className="h-8 w-8 flex items-center justify-center rounded-lg bg-white border border-[#e6dfd5] text-[#3d3023] font-bold hover:bg-orange-50 hover:text-orange-600 transition cursor-pointer"
+                    >
+                      -
+                    </button>
+                    <span className="text-sm font-bold text-[#3d3023] w-6 text-center">{adultCount}</span>
+                    <button
+                      type="button"
+                      onClick={() => setAdultCount(prev => {
+                        const next = prev + 1;
+                        if (next + childCount + babyCount <= maxPartySize) return next;
+                        return prev;
+                      })}
+                      className="h-8 w-8 flex items-center justify-center rounded-lg bg-white border border-[#e6dfd5] text-[#3d3023] font-bold hover:bg-orange-50 hover:text-orange-600 transition cursor-pointer"
+                    >
+                      +
+                    </button>
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setPartySize(prev => Math.min(maxPartySize, prev + 1))}
-                  className="h-10 w-10 flex items-center justify-center rounded-lg bg-white border border-[#e6dfd5] text-[#3d3023] font-bold hover:bg-orange-50 hover:text-orange-600 transition cursor-pointer"
-                >
-                  +
-                </button>
+
+                {/* Kids 4-7 */}
+                <div className="flex items-center justify-between border-t border-[#f7f3eb] pt-3">
+                  <div>
+                    <span className="text-sm font-bold text-[#3d3023] block">Çocuk (4-7 Yaş)</span>
+                    <span className="text-xs text-[#7c6f62]">200₺</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setChildCount(prev => Math.max(0, prev - 1))}
+                      className="h-8 w-8 flex items-center justify-center rounded-lg bg-white border border-[#e6dfd5] text-[#3d3023] font-bold hover:bg-orange-50 hover:text-orange-600 transition cursor-pointer"
+                    >
+                      -
+                    </button>
+                    <span className="text-sm font-bold text-[#3d3023] w-6 text-center">{childCount}</span>
+                    <button
+                      type="button"
+                      onClick={() => setChildCount(prev => {
+                        const next = prev + 1;
+                        if (adultCount + next + babyCount <= maxPartySize) return next;
+                        return prev;
+                      })}
+                      className="h-8 w-8 flex items-center justify-center rounded-lg bg-white border border-[#e6dfd5] text-[#3d3023] font-bold hover:bg-orange-50 hover:text-orange-600 transition cursor-pointer"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+
+                {/* Babies 0-3 */}
+                <div className="flex items-center justify-between border-t border-[#f7f3eb] pt-3">
+                  <div>
+                    <span className="text-sm font-bold text-[#3d3023] block">Bebek (0-3 Yaş)</span>
+                    <span className="text-xs text-green-600 font-semibold">Ücretsiz</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setBabyCount(prev => Math.max(0, prev - 1))}
+                      className="h-8 w-8 flex items-center justify-center rounded-lg bg-white border border-[#e6dfd5] text-[#3d3023] font-bold hover:bg-orange-50 hover:text-orange-600 transition cursor-pointer"
+                    >
+                      -
+                    </button>
+                    <span className="text-sm font-bold text-[#3d3023] w-6 text-center">{babyCount}</span>
+                    <button
+                      type="button"
+                      onClick={() => setBabyCount(prev => {
+                        const next = prev + 1;
+                        if (adultCount + childCount + next <= maxPartySize) return next;
+                        return prev;
+                      })}
+                      className="h-8 w-8 flex items-center justify-center rounded-lg bg-white border border-[#e6dfd5] text-[#3d3023] font-bold hover:bg-orange-50 hover:text-orange-600 transition cursor-pointer"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
               </div>
-              <span className="text-xs text-[#7c6f62] block">En az {minPartySize}, en fazla {maxPartySize} kişi seçebilirsiniz.</span>
+
+              {/* Total info badge */}
+              <div className="flex items-center justify-between p-3 rounded-xl bg-orange-50/50 border border-orange-100/60">
+                <span className="text-xs font-semibold text-[#7c6f62]">Toplam: {partySize} / {maxPartySize} Kişi</span>
+                {serviceType === "BREAKFAST" && breakfastTotal !== null && (
+                  <span className="text-sm font-bold text-orange-600">Tutar: {breakfastTotal}₺</span>
+                )}
+              </div>
             </div>
           </div>
 

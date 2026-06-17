@@ -19,6 +19,9 @@ const ReservationCreateSchema = z.object({
   phone: z.string().min(8).max(20),
   tckn: z.string().regex(/^\d{11}$/),
   partySize: z.coerce.number().int().min(1).max(20), // Max handled dynamically by settings
+  adultCount: z.coerce.number().int().min(0).optional(),
+  childCount: z.coerce.number().int().min(0).optional(),
+  babyCount: z.coerce.number().int().min(0).optional(),
   note: z.string().max(500).optional().or(z.literal("")),
 });
 
@@ -42,9 +45,20 @@ export async function POST(req: Request) {
     );
   }
 
-  const { serviceType, areaId, date, time, tableId, fullName, phone, tckn, partySize } =
-    parsed.data;
-  const note = parsed.data.note?.trim() ? parsed.data.note.trim() : null;
+  const {
+    serviceType,
+    areaId,
+    date,
+    time,
+    tableId,
+    fullName,
+    phone,
+    tckn,
+    partySize,
+    adultCount,
+    childCount,
+    babyCount,
+  } = parsed.data;
 
   const settings = await prisma.settings.findUnique({ where: { id: "singleton" } });
   if (settings && !settings.onlineReservationsActive) {
@@ -184,7 +198,27 @@ export async function POST(req: Request) {
   const tcknLast4 = tckn.slice(-4);
   
   // Fiyat hesaplama
-  const totalAmount = serviceType === "BREAKFAST" ? (settings?.breakfastPricePerPerson || 450) * partySize : null;
+  let totalAmount: number | null = null;
+  if (serviceType === "BREAKFAST") {
+    const pricePerPerson = settings?.breakfastPricePerPerson || 450;
+    if (adultCount !== undefined || childCount !== undefined || babyCount !== undefined) {
+      const aCount = adultCount ?? partySize;
+      const cCount = childCount ?? 0;
+      totalAmount = aCount * pricePerPerson + cCount * 200;
+    } else {
+      totalAmount = pricePerPerson * partySize;
+    }
+  }
+
+  // Not birleştirme
+  let finalNote = parsed.data.note?.trim() ? parsed.data.note.trim() : null;
+  if (adultCount !== undefined || childCount !== undefined || babyCount !== undefined) {
+    const aCount = adultCount ?? partySize;
+    const cCount = childCount ?? 0;
+    const bCount = babyCount ?? 0;
+    const breakdownStr = `[Kişiler: ${aCount} Yetişkin, ${cCount} Çocuk (4-7 Yaş), ${bCount} Bebek (0-3 Yaş)]`;
+    finalNote = finalNote ? `${breakdownStr} - Not: ${finalNote}` : breakdownStr;
+  }
 
   try {
     // Veritabanına kaydet - Race condition P2002 ile engellenir
@@ -201,7 +235,7 @@ export async function POST(req: Request) {
         tcknEncrypted,
         tcknLast4,
         partySize,
-        note,
+        note: finalNote,
         status: "PENDING",
         totalAmount,
       },

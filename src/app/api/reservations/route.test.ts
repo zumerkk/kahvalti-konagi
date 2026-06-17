@@ -42,7 +42,7 @@ describe("Reservations API - Integration Scenarios", () => {
     vi.mocked(prisma.settings.findUnique).mockResolvedValue({
       onlineReservationsActive: true,
       maxPartySize: 4,
-      breakfastPricePerPerson: 350,
+      breakfastPricePerPerson: 450,
     } as any);
 
     // Mock no closed dates

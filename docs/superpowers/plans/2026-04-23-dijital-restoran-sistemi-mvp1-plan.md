@@ -20,7 +20,7 @@ MVP1 revizyonunda:
 - Hizmet türü eklenecek: **BREAKFAST** veya **CAFE**.
 - Alan eklenecek: **CAMEKAN / SALON**.
 - Dijital menü eklenecek: kategori + ürün + stok.
-- Kahvaltı fiyatı admin’den ayarlanacak (default 350).
+- Kahvaltı fiyatı admin’den ayarlanacak (default 450).
 
 ---
 
@@ -246,7 +246,7 @@ model Product {
 
 model Settings {
   id                     String @id @default("singleton")
-  breakfastPricePerPerson Int   @default(350)
+  breakfastPricePerPerson Int   @default(450)
   updatedAt              DateTime @updatedAt
 }
 ```
@@ -271,7 +271,7 @@ async function main() {
   await prisma.settings.upsert({
     where: { id: "singleton" },
     update: {},
-    create: { id: "singleton", breakfastPricePerPerson: 350 },
+    create: { id: "singleton", breakfastPricePerPerson: 450 },
   });
 
   const camekan = await prisma.area.upsert({
@@ -586,7 +586,7 @@ git commit -m "feat(admin): mobile-friendly reservations with filters"
 - Modify: `src/app/globals.css` (gerekirse)
 
 - [ ] **Step 1: İçerik**
-- 350₺ açık büfe
+- 450₺ açık büfe
 - 14:00 sonrası cafe & bistro (kahve + tatlı)
 - CTA: Menü + Rezervasyon
 
