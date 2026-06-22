@@ -119,10 +119,12 @@ export default async function MenuPage({ searchParams }: Props) {
                           </p>
                         )}
                         <div className="mt-5 pt-4 border-t border-dashed border-[#faf6ee] flex items-center justify-between">
-                          <span className="text-lg font-black text-orange-600">
-                            {p.priceCents ? `${(p.priceCents / 100).toLocaleString("tr-TR")} ₺` : '-'}
+                          <span className={`font-black ${p.priceCents ? 'text-lg text-orange-600' : 'text-sm text-[#7c6f62]'}`}>
+                            {p.priceCents ? `${(p.priceCents / 100).toLocaleString("tr-TR")} ₺` : 'Fiyat Sorulur'}
                           </span>
-                          <span className="text-[10px] text-green-700 bg-green-50 border border-green-200/40 px-2 py-0.5 rounded-md font-bold">Taze & Sıcak</span>
+                          {p.priceCents ? (
+                            <span className="text-[10px] text-green-700 bg-green-50 border border-green-200/40 px-2 py-0.5 rounded-md font-bold">Taze & Sıcak</span>
+                          ) : null}
                         </div>
                       </div>
                     </div>
