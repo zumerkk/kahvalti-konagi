@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { isAdminRequest } from "@/lib/auth";
 import { logAudit } from "@/lib/audit-logger";
 
 export const runtime = "nodejs";
@@ -12,6 +13,9 @@ const PaymentSchema = z.object({
 });
 
 export async function POST(req: Request) {
+  if (!(await isAdminRequest(req))) {
+    return NextResponse.json({ ok: false, error: "Yetkisiz." }, { status: 401 });
+  }
   const body = await req.json().catch(() => null);
   const parsed = PaymentSchema.safeParse(body);
   

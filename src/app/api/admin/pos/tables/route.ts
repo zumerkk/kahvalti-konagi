@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { isAdminRequest } from "@/lib/auth";
 import { toDbDate } from "@/lib/reservation-rules";
 import { format } from "date-fns";
 
 export const runtime = "nodejs";
 
 export async function GET(req: Request) {
+  if (!(await isAdminRequest(req))) {
+    return NextResponse.json({ ok: false, error: "Yetkisiz." }, { status: 401 });
+  }
   // Şimdiki tarihi al ve o güne ait rezervasyonları/siparişleri getir
   const now = new Date();
   const dateStr = format(now, "yyyy-MM-dd");

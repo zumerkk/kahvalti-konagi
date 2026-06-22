@@ -1,68 +1,75 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { isAdminRequest } from "@/lib/auth";
 import { logAudit } from "@/lib/audit-logger";
 
 export const runtime = "nodejs";
 
-const OrderItemSchema = z.object({
+// Tek bir ürün satırını yönetir: ekle (+1), azalt (-1) veya tam adet/silme.
+// Aynı üründen tek satır tutulur (merge edilir) ve sipariş toplamı her
+// işlemde sıfırdan yeniden hesaplanır (artımlı drift olmaması için).
+const LineSchema = z.object({
   orderId: z.string().min(1),
   productId: z.string().min(1),
-  quantity: z.number().int().min(1).default(1),
+  delta: z.coerce.number().int().optional(),
+  setQty: z.coerce.number().int().min(0).optional(),
   note: z.string().optional(),
 });
 
 export async function POST(req: Request) {
+  if (!(await isAdminRequest(req))) {
+    return NextResponse.json({ ok: false, error: "Yetkisiz." }, { status: 401 });
+  }
+
   const body = await req.json().catch(() => null);
-  const parsed = OrderItemSchema.safeParse(body);
-  
+  const parsed = LineSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ ok: false, error: "Geçersiz veri", details: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { orderId, productId, quantity, note } = parsed.data;
+  const { orderId, productId, delta, setQty, note } = parsed.data;
 
   try {
-    const product = await prisma.product.findUnique({ where: { id: productId } });
-    if (!product || !product.isActive) {
-      return NextResponse.json({ ok: false, error: "Ürün bulunamadı veya pasif." }, { status: 404 });
-    }
+    const updated = await prisma.$transaction(async (tx) => {
+      const order = await tx.order.findUnique({ where: { id: orderId }, include: { items: true } });
+      if (!order || order.status !== "OPEN") {
+        throw new Error("Sipariş bulunamadı veya zaten kapalı.");
+      }
 
-    const order = await prisma.order.findUnique({ where: { id: orderId } });
-    if (!order || order.status !== "OPEN") {
-      return NextResponse.json({ ok: false, error: "Sipariş bulunamadı veya zaten kapalı." }, { status: 400 });
-    }
+      const product = await tx.product.findUnique({ where: { id: productId } });
+      if (!product || !product.isActive) {
+        throw new Error("Ürün bulunamadı veya pasif.");
+      }
 
-    const priceCents = product.priceCents || 0;
-    const itemTotal = priceCents * quantity;
+      const existing = order.items.find((it) => it.productId === productId);
+      const targetQty = setQty != null ? setQty : (existing?.quantity ?? 0) + (delta ?? 1);
 
-    // İşlemi transaction ile yapıp sipariş toplamını güncelle
-    const result = await prisma.$transaction(async (tx) => {
-      const orderItem = await tx.orderItem.create({
-        data: {
-          orderId,
-          productId,
-          quantity,
-          priceCents,
-          note,
-        }
-      });
+      if (targetQty <= 0) {
+        if (existing) await tx.orderItem.delete({ where: { id: existing.id } });
+      } else if (existing) {
+        await tx.orderItem.update({ where: { id: existing.id }, data: { quantity: targetQty } });
+      } else {
+        await tx.orderItem.create({
+          data: { orderId, productId, quantity: targetQty, priceCents: product.priceCents ?? 0, note: note || null },
+        });
+      }
 
-      const updatedOrder = await tx.order.update({
+      // Toplamı sıfırdan hesapla
+      const items = await tx.orderItem.findMany({ where: { orderId } });
+      const total = items.reduce((acc, it) => acc + it.priceCents * it.quantity, 0);
+
+      return tx.order.update({
         where: { id: orderId },
-        data: {
-          totalAmount: { increment: itemTotal }
-        }
+        data: { totalAmount: total },
+        include: { items: { include: { product: true } }, payments: true },
       });
-
-      return { orderItem, updatedOrder };
     });
 
-    await logAudit("ORDER_ITEM", result.orderItem.id, "CREATE", { orderId, productId, quantity, itemTotal }, "ADMIN");
-
-    return NextResponse.json({ ok: true, data: result });
+    await logAudit("ORDER", orderId, "UPDATE", { productId, delta, setQty, newTotal: updated.totalAmount }, "ADMIN");
+    return NextResponse.json({ ok: true, data: updated });
   } catch (error: any) {
-    console.error("Order Item error:", error);
-    return NextResponse.json({ ok: false, error: "Sipariş eklenirken hata oluştu." }, { status: 500 });
+    console.error("Order line error:", error);
+    return NextResponse.json({ ok: false, error: error.message || "Sipariş güncellenirken hata oluştu." }, { status: 400 });
   }
 }

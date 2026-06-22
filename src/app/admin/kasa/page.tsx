@@ -16,11 +16,5 @@ export default async function KasaPage() {
     select: { id: true, name: true }
   });
 
-  const tables = await prisma.table.findMany({
-    where: { isActive: true },
-    orderBy: { name: "asc" },
-    select: { id: true, name: true }
-  });
-
-  return <KasaClient initialProducts={products} categories={categories} tables={tables} />;
+  return <KasaClient initialProducts={products} categories={categories} />;
 }
