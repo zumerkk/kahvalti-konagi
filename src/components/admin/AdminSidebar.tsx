@@ -98,13 +98,16 @@ export function AdminSidebar() {
           <ExternalLink className="h-[18px] w-[18px] shrink-0" />
           {!collapsed && <span>Siteye Dön</span>}
         </Link>
-        <Link
-          href="/api/admin/logout"
-          className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-white/40 transition hover:bg-red-500/10 hover:text-red-400"
+        <button
+          onClick={async () => {
+            await fetch("/api/admin/logout", { method: "POST" });
+            window.location.href = "/admin/login";
+          }}
+          className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-white/40 transition hover:bg-red-500/10 hover:text-red-400"
         >
           <LogOut className="h-[18px] w-[18px] shrink-0" />
           {!collapsed && <span>Çıkış Yap</span>}
-        </Link>
+        </button>
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="hidden w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-white/30 transition hover:bg-white/[0.04] hover:text-white/50 md:flex"
