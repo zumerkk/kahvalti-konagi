@@ -36,7 +36,7 @@ export async function updateProduct(
     name?: string;
     categoryId?: string;
     description?: string;
-    priceCents?: number;
+    priceCents?: number | null;
     stockQty?: number;
     isActive?: boolean;
   }
