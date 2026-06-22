@@ -214,7 +214,7 @@ export function AdminReservationsBrowser() {
     if (templateType === 'confirm') {
       text = `Merhaba ${r.fullName}, Kahvaltı Konağı rezervasyonunuz onaylanmıştır. 📅 ${formattedDate} günü saat ⏰ ${r.time}'da ${r.area.title} alanında ${r.table.name} masasında sizi ağırlamaktan mutluluk duyacağız. Keyifli günler dileriz!`;
     } else if (templateType === 'deposit') {
-      text = `Merhaba ${r.fullName}, Kahvaltı Konağı rezervasyon talebiniz alınmıştır. Rezervasyonunuzu tamamlamak ve kesinleştirmek için kapora ödemenizi yapabilirsiniz. Detaylar için bizimle iletişime geçebilirsiniz. Teşekkür ederiz.`;
+      text = `Merhaba ${r.fullName}, Kahvaltı Konağı rezervasyon talebiniz alınmıştır. Rezervasyonunuzu tamamlamak ve kesinleştirmek için kapora ödemenizi aşağıdaki hesaba yapabilirsiniz:\n\n🏦 IBAN: TR53 0004 6000 1188 8000 3923 59\n👤 Alıcı: Onurcan Erdurucan\n\nÖdeme sonrası dekontu bu numara üzerinden bizimle paylaşabilirsiniz. Teşekkür ederiz.`;
     } else if (templateType === 'cancel') {
       text = `Merhaba ${r.fullName}, ${formattedDate} tarihindeki rezervasyon talebiniz iptal edilmiştir. Başka bir gün görüşmek dileğiyle. İyi günler dileriz.`;
     } else {
