@@ -20,6 +20,13 @@ const nextConfig: NextConfig = {
   images: {
     formats: ['image/avif', 'image/webp'],
     minimumCacheTTL: 60 * 60 * 24 * 30, // 30 gün
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+        pathname: '/**',
+      },
+    ],
   },
   compiler: {
     removeConsole: process.env.NODE_ENV === "production", // Prod'da console.log'ları siler
