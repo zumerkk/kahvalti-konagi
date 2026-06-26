@@ -19,6 +19,32 @@ type Props = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
+function parseProductName(name: string) {
+  const trimmed = name.trim();
+  const words = trimmed.split(/\s+/);
+  const lastWord = words[words.length - 1];
+  
+  let sizeOrder = 0;
+  let baseName = trimmed;
+  
+  const sizeLower = lastWord.toLowerCase();
+  if (sizeLower === 'small' || sizeLower === 'mini') {
+    sizeOrder = 1;
+    baseName = words.slice(0, -1).join(' ').trim();
+  } else if (sizeLower === 'medium') {
+    sizeOrder = 2;
+    baseName = words.slice(0, -1).join(' ').trim();
+  } else if (sizeLower === 'large') {
+    sizeOrder = 3;
+    baseName = words.slice(0, -1).join(' ').trim();
+  }
+  
+  return {
+    baseName,
+    sizeOrder
+  };
+}
+
 export default async function MenuPage({ searchParams }: Props) {
   const resolvedParams = await searchParams;
   const table = resolvedParams.table as string | undefined;
@@ -29,13 +55,29 @@ export default async function MenuPage({ searchParams }: Props) {
     orderBy: { sortOrder: "asc" },
     include: {
       products: {
-        where: { isActive: true },
-        orderBy: { sortOrder: "asc" }
+        where: { isActive: true }
       }
     }
   });
 
-  const categories = categoriesRaw.filter(c => c.products.length > 0);
+  const categories = categoriesRaw
+    .filter(c => c.products.length > 0)
+    .map(c => {
+      const sortedProducts = [...c.products].sort((a, b) => {
+        const pa = parseProductName(a.name);
+        const pb = parseProductName(b.name);
+        
+        const baseCompare = pa.baseName.localeCompare(pb.baseName, 'tr', { sensitivity: 'base' });
+        if (baseCompare === 0) {
+          return pa.sizeOrder - pb.sizeOrder;
+        }
+        return baseCompare;
+      });
+      return {
+        ...c,
+        products: sortedProducts
+      };
+    });
 
   return (
     <div className="flex min-h-screen flex-col bg-[#FCFBF8] text-[#2C241B] selection:bg-amber-200/50 font-sans">
